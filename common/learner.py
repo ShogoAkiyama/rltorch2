@@ -6,8 +6,6 @@ from copy import deepcopy
 import torch
 from torch.utils.tensorboard import SummaryWriter
 
-from common.replay_memory import EpisodeReplayMemory
-
 from common.env import make_pytorch_env
 
 class AbstractLearner:
@@ -18,13 +16,10 @@ class AbstractLearner:
         self.batch_size = args.batch_size
         self.multi_step = args.multi_step
         self.optim_lr = args.lr
-        self.n_epochs = args.n_epochs
+        self.update_per_epoch = args.update_per_epoch
 
         # gym
-        self.n_steps = 0
-
-        # memory
-        self.memory = EpisodeReplayMemory(args)
+        self.epochs = 0
 
         self.model_path = os.path.join(
             './', 'logs', 'model')
@@ -40,6 +35,7 @@ class AbstractLearner:
         self.n_act = self.env.action_space.n
 
         # interval process
+        self.eval_interval = args.learner_eval
         self.load_memory_interval = args.learner_load_memory
         self.save_model_interval = args.learner_save_model
         self.target_update_interval = args.learner_target_update
@@ -53,20 +49,23 @@ class AbstractLearner:
         self.shared_weights['target_net_state'] = deepcopy(self.target_net).cpu().state_dict()
 
     def interval(self):
-        if self.n_steps % self.load_memory_interval == 0:
+        if self.epochs % self.eval_interval == 0:
+            self.evaluate()
+
+        if self.epochs % self.load_memory_interval == 0:
             while not self.shared_memory.empty():
                 batch = self.shared_memory.get()
-                self.memory.load_memory(batch)
+                self.memory.load(batch)
             # self.memory.load()
 
-        if self.n_steps % self.save_model_interval == 0:
+        if self.epochs % self.save_model_interval == 0:
             self.save_model()
 
-        if self.n_steps % self.save_model_interval*100 == 0:
+        if self.epochs % self.save_model_interval*100 == 0:
             self.net.save(self.model_path)
             self.target_net.save(self.model_path, target=True)
 
-        if self.n_steps % self.target_update_interval == 0:
+        if self.epochs % self.target_update_interval == 0:
             self.target_net.load_state_dict(self.net.state_dict())
             self.target_net.eval()
 
@@ -74,11 +73,11 @@ class AbstractLearner:
 
     def log(self):
         now = time.time()
-        if self.n_steps % self.save_log_interval == 0:
+        if self.epochs % self.save_log_interval == 0:
             self.writer.add_scalar(
                 "loss/learner",
                 self.total_loss,
-                self.n_steps)
+                self.epochs)
         print(
             f"Learer: loss: {self.total_loss:< 8.3f} "
             f"memory: {len(self.memory):<5} \t"

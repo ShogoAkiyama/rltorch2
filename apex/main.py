@@ -25,12 +25,13 @@ def run():
     parser.add_argument('-batch_size', type=int, default=32)
     parser.add_argument('-multi_step', type=int, default=3)
     parser.add_argument('-memory_size', type=int, default=100)
-    parser.add_argument('-n_epochs', type=int, default=32)
+    parser.add_argument('-update_per_epoch', type=int, default=32)
 
     parser.add_argument('-actor_save_memory', type=int, default=5)
     parser.add_argument('-actor_load_model', type=int, default=5)
     parser.add_argument('-actor_save_log', type=int, default=100)
 
+    parser.add_argument('-learner_eval', type=int, default=5)
     parser.add_argument('-learner_load_memory', type=int, default=5)
     parser.add_argument('-learner_save_model', type=int, default=10)
     parser.add_argument('-learner_target_update', type=int, default=10)

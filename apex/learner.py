@@ -15,6 +15,7 @@ class Learner(AbstractLearner):
     def __init__(self, args, shared_memory, shared_weights):
         super(Learner, self).__init__(args, shared_weights)
 
+        self.steps = 0
         self.shared_memory = shared_memory
 
         self.net = QNetwork(self.n_state, self.n_act)
@@ -34,22 +35,23 @@ class Learner(AbstractLearner):
         self.save_model()
 
     def run(self):
-        while len(self.memory) <= 1:#self.batch_size:
+        while len(self.memory) <= self.batch_size:
             while not self.shared_memory.empty():
                 batch = self.shared_memory.get()
                 self.memory.load(batch)
-                # self.memory.load()
+
             time.sleep(1.0)
 
         self.time = time.time()
         while True:
-            self.n_steps += 1
+            self.epochs += 1
             self.train()
             self.interval()
 
     def train(self):
         self.total_loss = 0
-        for epoch in range(self.n_epochs):
+        for epoch in range(self.update_per_epoch):
+            self.steps += 1
             # sample batch
             batch, seq_idx, epi_idx, weights = \
                 self.memory.get_batch()
@@ -77,7 +79,7 @@ class Learner(AbstractLearner):
     def evaluate(self):
         episodes = 10
         returns = np.zeros((episodes,), dtype=np.float32)
-        action_bar = np.zeros((self.env.action_space.n), np.int)
+        action_bar = np.zeros(self.n_act, np.int)
 
         for i in range(episodes):
             state = self.env.reset()
@@ -100,6 +102,12 @@ class Learner(AbstractLearner):
         print('Learer  '
               f'Num steps: {self.steps:<5} '
               f'reward: {mean_return:<5.1f}+/- {std_return:<5.1f}')
+
+    def exploit(self, state):
+        state = torch.FloatTensor(state).unsqueeze(0).to(self.device)
+        with torch.no_grad():
+            action = self.net(state).argmax().item()
+        return action
 
     def q_value(self, batch):
         # curr Q

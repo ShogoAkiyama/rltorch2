@@ -9,7 +9,7 @@ import pickle
 gc.enable()
 
 class EpisodeReplayMemory:
-    def __init__(self, args):
+    def __init__(self, args, add_key):
         # args
         self.n_actors = args.n_actors
         self.priority_exp = args.priority_exp
@@ -23,7 +23,7 @@ class EpisodeReplayMemory:
             './', 'logs', 'memory')
         self.memory_size = args.memory_size
 
-        self.key_list = ['state', 'action', 'reward', 'done']
+        self.key_list = ['state', 'action', 'reward', 'done'] + add_key
 
         self.memory = {}
         for key in self.key_list + ['priority', 'sum_priority']:
@@ -68,79 +68,6 @@ class EpisodeReplayMemory:
             # update memory
             for key in self.key_list + ['priority', 'sum_priority']:
                 self.memory[key] = self.memory[key][int(-self.memory_size):]
-
-    # def save(self, actor_id):
-    #     memory_path = os.path.join(self.memory_path, f'memory{actor_id}.pt')
-    #     for key in self.key_list + ['priority', 'sum_priority']:
-    #         self.memory[key] = list(self.memory[key])
-    #
-    #     lock = fasteners.InterProcessLock(memory_path)
-    #     gotten = lock.acquire(blocking=False)
-    #     try:
-    #         if gotten:
-    #             if os.path.isfile(memory_path) and os.path.getsize(memory_path) > 0:
-    #                 # pass
-    #                 memory = torch.load(
-    #                     memory_path, map_location=lambda storage, loc: storage)
-    #                 for key in self.key_list + ['priority', 'sum_priority']:
-    #                     memory[key].extend(self.memory[key])
-    #                 torch.save(memory, memory_path)
-    #             else:
-    #                 memory = dict()
-    #                 for key in self.key_list + ['priority', 'sum_priority']:
-    #                     memory[key] = self.memory[key]
-    #                 torch.save(memory, memory_path)
-    #     finally:
-    #         if gotten:
-    #             lock.release()
-    #
-    #     self.memory = {}
-    #     for key in self.key_list + ['priority', 'sum_priority']:
-    #         self.memory[key] = list()
-
-    # def load(self):
-    #     for actor_id in range(self.n_actors):
-    #         memory_path = os.path.join(self.memory_path, f'memory{actor_id}.pt')
-    #         is_memory = os.path.isfile(memory_path)
-    #         if is_memory:
-    #             lock = fasteners.InterProcessLock(memory_path)
-    #             gotten = lock.acquire(blocking=False)
-    #             try:
-    #                 if gotten and os.path.isfile(memory_path) and os.path.getsize(memory_path) > 200:
-    #                     memory = torch.load(
-    #                         memory_path, map_location=lambda storage, loc: storage)
-    #                     for key in self.key_list + ['priority', 'sum_priority']:
-    #                         self.memory[key].extend(memory[key])
-    #                     N = sum(len(v) for v in memory['priority'])
-    #                     sum_p = sum([pri for pri in memory['sum_priority']])
-    #                     self.N += N
-    #                     self.sum_p += sum_p
-    #
-    #                     if len(self.memory['sum_priority']) > self.memory_size:
-    #                         # calc priority
-    #                         memory = dict()
-    #                         memory['priority'] = \
-    #                             self.memory['priority'][:len(self.memory['priority']) - int(self.memory_size)]
-    #                         memory['sum_priority'] = \
-    #                             self.memory['sum_priority'][:len(self.memory['sum_priority']) - int(self.memory_size)]
-    #
-    #                         self.N -= sum(len(v) for v in memory['priority'])
-    #                         self.sum_p -= sum([pri for pri in memory['sum_priority']])
-    #
-    #                         # update memory
-    #                         for key in self.key_list + ['priority', 'sum_priority']:
-    #                             self.memory[key] = self.memory[key][int(-self.memory_size):]
-    #
-    #                         gc.collect()
-    #
-    #             except pickle.UnpicklingError:
-    #                 print("Pickle data was truncated.")
-    #                 os.remove(memory_path)
-    #             finally:
-    #                 if gotten:
-    #                     if os.path.isfile(memory_path):
-    #                         os.remove(memory_path)
-    #                     lock.release()
 
     def add(self, episode_buff):
         for key in self.key_list + ['priority']:

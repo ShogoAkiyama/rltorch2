@@ -1,6 +1,7 @@
 import os
 import time
 from collections import deque
+import numpy as np
 
 from torch.utils.tensorboard import SummaryWriter
 from common.env import make_pytorch_env
@@ -44,12 +45,32 @@ class AbstractActor:
         self.reward_deque = deque(maxlen=self.multi_step)
         self.curr_q_deque = deque(maxlen=self.multi_step)
 
-        self.episode_buff = {}
-        for key in ['state', 'action', 'reward', 'done', 'priority']:
-            self.episode_buff[key] = list()
-
         # env
         self.n_episodes = 0
+
+    def run(self):
+        self.time = time.time()
+        while True:
+            self.n_steps += 1
+
+            self.interact()
+
+            if self.episode_done:
+                if self.n_steps >= self.multi_step:
+                    self.memory.add(self.episode_buff)
+                    if self.n_episodes % self.save_memory_interval == 0:
+                        self.shared_memory.put(self.memory.get())
+                        self.memory.reset()
+                        # self.memory.save(self.actor_id)
+
+                if self.n_episodes % self.load_model_interval == 0:
+                    self.load_model()
+
+                # reset arena
+                self.reward_logger.add_reward(self.episode_reward)
+                self.env_state = self.env.reset()
+
+                self.interval()
 
     def load_model(self):
         try:
@@ -69,7 +90,7 @@ class AbstractActor:
         self.curr_q_deque = deque(maxlen=self.multi_step)
 
         self.episode_buff = {}
-        for key in ['state', 'action', 'reward', 'done', 'priority']:
+        for key in self.key_list:
             self.episode_buff[key] = list()
 
     def log(self):
@@ -87,3 +108,19 @@ class AbstractActor:
             f"reward {self.episode_reward:< 7.3f} \t"
             f"time: {now - self.time:.2f}s")
         self.time = now
+
+    def add_episode_buff(self, state, action, done):
+        state = state[-int(self.n_state/4):].copy()
+
+        state = np.array(state * 255, dtype=np.uint8)
+
+        self.episode_buff['state'].append(state)
+        self.episode_buff['action'].append(action)
+        self.episode_buff['done'].append(done)
+
+    def calc_discount_reward(self):
+        multi_reward = list(self.reward_deque)
+        discount_reward = 0
+        for i, r in enumerate(multi_reward):
+            discount_reward += (r * (self.gamma ** i))
+        return discount_reward
