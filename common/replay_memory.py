@@ -9,7 +9,7 @@ import pickle
 gc.enable()
 
 class EpisodeReplayMemory:
-    def __init__(self, args, add_key):
+    def __init__(self, args, add_key=[]):
         # args
         self.n_actors = args.n_actors
         self.priority_exp = args.priority_exp

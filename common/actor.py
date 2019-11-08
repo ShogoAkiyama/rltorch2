@@ -37,13 +37,8 @@ class AbstractActor:
             if args.n_actors > 1 else 0.4
         self.priority_exp = args.priority_exp
         self.multi_step = args.multi_step
-        self.episode_done = False
-        self.next_q = None
-        self.env_done = False
-        self.episode_reward = 0
-        self.n_steps = 0
-        self.reward_deque = deque(maxlen=self.multi_step)
-        self.curr_q_deque = deque(maxlen=self.multi_step)
+
+        self.interval()
 
         # env
         self.n_episodes = 0
@@ -61,7 +56,6 @@ class AbstractActor:
                     if self.n_episodes % self.save_memory_interval == 0:
                         self.shared_memory.put(self.memory.get())
                         self.memory.reset()
-                        # self.memory.save(self.actor_id)
 
                 if self.n_episodes % self.load_model_interval == 0:
                     self.load_model()
