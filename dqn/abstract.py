@@ -3,6 +3,8 @@ import numpy as np
 import time
 from common.env import make_pytorch_env
 import torch
+from torch.utils.tensorboard import SummaryWriter
+from collections import deque
 
 class Abstract:
     def __init__(self, args):
@@ -25,9 +27,14 @@ class Abstract:
         self.n_state = self.env.observation_space.shape[0]
         self.n_act = self.env.action_space.n
 
-        # path
+        # logs
         self.summary_path = os.path.join('./', 'logs', 'summary')
         self.model_path = os.path.join('./', 'logs', 'model')
+        self.writer = SummaryWriter(log_dir=self.summary_path)
+
+        # device
+        self.device = torch.device(
+            'cuda' if torch.cuda.is_available() else 'cpu')
 
     def add_episode_buff(self, state, action, done):
         state = state[-int(self.n_state/4):].copy()
@@ -44,34 +51,6 @@ class Abstract:
         for i, r in enumerate(multi_reward):
             discount_reward += (r * (self.gamma ** i))
         return discount_reward
-
-    def learner_log(self):
-        now = time.time()
-        if self.epochs % self.save_log_interval == 0:
-            self.writer.add_scalar(
-                "loss/learner",
-                self.total_loss,
-                self.epochs)
-        print(
-            f"Learer: loss: {self.total_loss:< 8.3f} "
-            f"memory: {len(self.memory):<5} \t"
-            f"time: {now - self.time:.2f}s")
-        self.time = now
-
-    def actor_log(self):
-        now = time.time()
-        if self.n_steps % self.save_log_interval == 0:
-            self.writer.add_scalar(
-                    f"mean_reward",
-                    self.reward_logger.mean_reward(),
-                    self.n_episodes)
-        print(
-            " "*20,
-            f"episode {self.n_episodes:<5} \t"
-            f"step {self.n_steps:<5} \t"
-            f"reward {self.episode_reward:< 7.3f} \t"
-            f"time: {now - self.time:.2f}s")
-        self.time = now
 
     def process_batch(self, batch):
         batch['state'] = torch.FloatTensor(batch['state'] / 255.0).to(self.device)
@@ -97,3 +76,92 @@ class Abstract:
                    (self.gamma ** self.multi_step) * next_q * (1.0 - batch['done'].view(-1, 1))
 
         return curr_q, target_q
+
+    def interval(self):
+        if self.epochs % self.eval_interval == 0:
+            self.evaluate()
+
+        if self.epochs % self.save_model_interval*100 == 0:
+            self.net.save(self.model_path)
+            self.target_net.save(self.model_path, target=True)
+
+        if self.epochs % self.target_update_interval == 0:
+            self.target_net.load_state_dict(self.net.state_dict())
+            self.target_net.eval()
+
+        self.train_log()
+
+    def agent_reset(self):
+        # reset
+        self.episode_done = False
+        self.next_q = None
+        self.env_done = False
+        self.episode_reward = 0
+        self.n_steps = 0
+        self.reward_deque = deque(maxlen=self.multi_step)
+        self.curr_q_deque = deque(maxlen=self.multi_step)
+
+        self.episode_buff = {}
+        for key in self.key_list:
+            self.episode_buff[key] = list()
+
+    def evaluate(self):
+        episodes = 10
+        returns = np.zeros((episodes,), dtype=np.float32)
+        action_bar = np.zeros(self.n_act, np.int)
+
+        for i in range(episodes):
+            state = self.env.reset()
+            episode_reward = 0.
+            done = False
+            while not done:
+                action = self.exploit(state)
+                next_state, reward, done, _ = self.env.step(action)
+                action_bar[action] += 1
+                episode_reward += reward
+                state = next_state
+
+            returns[i] = episode_reward
+
+        mean_return = np.mean(returns)
+        std_return = np.std(returns)
+
+        self.writer.add_scalar(
+            'reward/test', mean_return, self.n_train)
+        print('Learer  '
+              f'Num steps: {self.n_train:<5} '
+              f'reward: {mean_return:<5.1f}+/- {std_return:<5.1f}')
+
+    def exploit(self, state):
+        state = torch.FloatTensor(state).unsqueeze(0).to(self.device)
+        with torch.no_grad():
+            action = self.net(state).argmax().item()
+        return action
+
+    def train_log(self):
+        now = time.time()
+        if self.epochs % self.save_log_interval == 0:
+            self.writer.add_scalar(
+                "loss/learner",
+                self.total_loss,
+                self.epochs)
+        print(
+            f"Learer: loss: {self.total_loss:< 8.3f} "
+            f"memory: {len(self.memory):<5} \t"
+            f"time: {now - self.time:.2f}s")
+        self.time = now
+
+    def agent_log(self):
+        now = time.time()
+        if self.n_steps % self.save_log_interval == 0:
+            self.writer.add_scalar(
+                    f"mean_reward",
+                    self.reward_logger.mean_reward(),
+                    self.n_episodes)
+        print(
+            " "*20,
+            f"episode {self.n_episodes:<5} \t"
+            f"step {self.n_steps:<5} \t"
+            f"reward {self.episode_reward:< 7.3f} \t"
+            f"time: {now - self.time:.2f}s")
+        self.time = now
