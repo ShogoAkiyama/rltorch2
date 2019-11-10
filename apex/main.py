@@ -17,7 +17,7 @@ def run():
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--env_id', type=str, default='MsPacmanNoFrameskip-v4')
-    parser.add_argument('-n', '--n_actors', type=int, default=1)
+    parser.add_argument('-n', '--n_actors', type=int, default=5)
 
     parser.add_argument('-gamma', type=float, default=0.99)
     parser.add_argument('-priority_exp', type=float, default=0.6)

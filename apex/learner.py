@@ -6,6 +6,7 @@ from .model import QNetwork
 import torch.optim as optim
 from common.utils import grad_false
 from common.learner import AbstractLearner
+from common.replay_memory import EpisodeReplayMemory
 
 def learner_process(args, shared_memory, shared_weights):
     learner = Learner(args, shared_memory, shared_weights)
@@ -33,6 +34,9 @@ class Learner(AbstractLearner):
 
         # model save
         self.save_model()
+
+        # memory
+        self.memory = EpisodeReplayMemory(args)
 
     def run(self):
         while len(self.memory) <= self.batch_size:

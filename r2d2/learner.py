@@ -128,6 +128,8 @@ class Learner(AbstractLearner):
         action_bar = np.zeros(self.n_act, np.int)
 
         for i in range(episodes):
+            self.net.reset_recc()
+            self.target_net.reset_recc()
             state = self.env.reset()
             episode_reward = 0.
             done = False

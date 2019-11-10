@@ -38,9 +38,10 @@ class AbstractActor:
         self.priority_exp = args.priority_exp
         self.multi_step = args.multi_step
 
-        self.interval()
+        # self.interval()
 
         # env
+        self.n_steps = 0
         self.n_episodes = 0
 
     def run(self):

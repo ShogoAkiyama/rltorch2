@@ -43,9 +43,8 @@ class Actor(AbstractActor):
         self.env_state = self.env.reset()
 
         self.key_list = ['state', 'action', 'reward', 'done', 'priority']
-        self.episode_buff = {}
-        for key in self.key_list:
-            self.episode_buff[key] = list()
+
+        self.interval()
 
     def interact(self):
         state = self.env_state
