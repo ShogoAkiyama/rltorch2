@@ -10,7 +10,8 @@ class QNetwork(AbstractModel):
     def __init__(self, n_state, n_act):
         super(QNetwork, self).__init__()
 
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.device = torch.device(
+            'cuda' if torch.cuda.is_available() else 'cpu')
 
         self.input_channel = n_state
         self.n_act = n_act
