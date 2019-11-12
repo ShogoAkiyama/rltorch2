@@ -48,7 +48,7 @@ class Learner(AbstractLearner):
         self.save_model()
 
     def run(self):
-        while len(self.memory) <= 1:#self.batch_size:
+        while len(self.memory) <= self.batch_size:
             while not self.shared_memory.empty():
                 batch = self.shared_memory.get()
                 self.memory.load(batch)
