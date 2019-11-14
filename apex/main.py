@@ -17,7 +17,8 @@ def run():
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--env_id', type=str, default='MsPacmanNoFrameskip-v4')
-    parser.add_argument('-n', '--n_actors', type=int, default=5)
+    parser.add_argument('-n', '--n_actors', type=int, default=1)
+    parser.add_argument('-recurrent', type=bool, default=False)
 
     parser.add_argument('-gamma', type=float, default=0.99)
     parser.add_argument('-priority_exp', type=float, default=0.6)
@@ -37,7 +38,7 @@ def run():
     parser.add_argument('-learner_target_update', type=int, default=10)
     parser.add_argument('-learner_save_log', type=int, default=10)
 
-    parser.add_argument('-lr', type=float, default=2.5e-4/4.0)
+    parser.add_argument('-lr', type=float, default=2.5e-4)
 
     args = parser.parse_args()
     shared_memory = mp.Queue(100)
@@ -66,7 +67,7 @@ def run():
     for actor_id in range(args.n_actors):
         processes.append(mp.Process(
             target=actor_process,
-            args=(actor_id, args, shared_memory, shared_weights)))
+            args=(args, actor_id, shared_memory, shared_weights)))
 
     for pi in range(len(processes)):
         processes[pi].start()
