@@ -70,7 +70,7 @@ class Learner(AbstractLearner):
 
             # process batch
             seq_batch = self.process_batch(seq_batch)
-            weights = torch.FloatTensor(weights).to(self.device).view(-1, 1)
+            weights = torch.FloatTensor(weights).to(self.device)
 
             # burn in
             recc = seq_batch['recc']
@@ -110,7 +110,10 @@ class Learner(AbstractLearner):
             curr_q, target_q = self.q_value(batch)
 
             # update model
-            loss = torch.mean((target_q - curr_q) ** 2 * weights)
+            loss = torch.mean((target_q - curr_q) ** 2, 1)
+
+            loss *= weights
+            loss = torch.mean(loss)
 
             self.optimizer.zero_grad()
             loss.backward()
