@@ -16,8 +16,10 @@ def run():
     mp.freeze_support()
 
     parser = argparse.ArgumentParser()
+
     parser.add_argument('--env_id', type=str, default='PongNoFrameskip-v4')
     parser.add_argument('-n', '--n_actors', type=int, default=5)
+    parser.add_argument('-recurrent', type=bool, default=True)
 
     parser.add_argument('-gamma', type=float, default=0.99)
     parser.add_argument('-priority_exp', type=float, default=0.6)
@@ -26,7 +28,6 @@ def run():
     parser.add_argument('-multi_step', type=int, default=3)
     parser.add_argument('-memory_size', type=int, default=100)
     parser.add_argument('-update_per_epoch', type=int, default=100)
-
 
     parser.add_argument('-eta', type=float, default=0.9)
     parser.add_argument('-seq_size', type=int, default=20)
@@ -72,7 +73,7 @@ def run():
     for actor_id in range(args.n_actors):
         processes.append(mp.Process(
             target=actor_process,
-            args=(actor_id, args, shared_memory, shared_weights)))
+            args=(args, actor_id, shared_memory, shared_weights)))
 
     for pi in range(len(processes)):
         processes[pi].start()

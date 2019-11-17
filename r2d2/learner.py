@@ -1,20 +1,23 @@
-import time
+import os
 import numpy as np
 import torch
 
 from .model import LSTMNetwork
 import torch.optim as optim
 from common.utils import grad_false
-from common.learner import AbstractLearner
+from common.abstract import Abstract
 from .replay_memory import R2D2ReplayMemory
+from torch.utils.tensorboard import SummaryWriter
 
 def learner_process(args, shared_memory, shared_weights):
     learner = Learner(args, shared_memory, shared_weights)
-    learner.run()
+    learner.learner_run()
 
-class Learner(AbstractLearner):
+
+class Learner(Abstract):
     def __init__(self, args, shared_memory, shared_weights):
-        super(Learner, self).__init__(args, shared_weights)
+        super(Learner, self).__init__(args, shared_memory, shared_weights)
+
         self.burn_in_size = args.burn_in_size
         self.seq_size = args.seq_size
         self.mask = np.concatenate([
@@ -24,8 +27,13 @@ class Learner(AbstractLearner):
             np.arange(3, self.seq_size+self.multi_step+3).reshape(-1, 1)],
             axis=1)
 
-        self.steps = 0
-        self.shared_memory = shared_memory
+        self.summary_path = os.path.join(
+            './', 'logs', 'summary', 'leaner')
+        self.writer = SummaryWriter(log_dir=self.summary_path)
+
+        # param
+        self.train_steps = 0
+        self.epochs = 0
 
         self.net = LSTMNetwork(self.n_state, self.n_act)
         self.target_net = LSTMNetwork(self.n_state, self.n_act)
@@ -40,30 +48,17 @@ class Learner(AbstractLearner):
         self.optimizer = optim.Adam(
             self.net.parameters(), lr=self.optim_lr)
 
+        # model save
+        self.save_model()
+
         # memory
         add_key = ['recc', 'target_recc']
         self.memory = R2D2ReplayMemory(args, add_key)
 
-        # model save
-        self.save_model()
-
-    def run(self):
-        while len(self.memory) <= self.batch_size:
-            while not self.shared_memory.empty():
-                batch = self.shared_memory.get()
-                self.memory.load(batch)
-            time.sleep(1.0)
-
-        self.time = time.time()
-        while True:
-            self.epochs += 1
-            self.train()
-            self.interval()
-
     def train(self):
         self.total_loss = 0
         for epoch in range(self.update_per_epoch):
-            self.steps += 1
+            self.train_steps += 1
             # sample batch
             seq_batch, seq_idx, epi_idx, weights = \
                 self.memory.get_batch()
@@ -125,41 +120,6 @@ class Learner(AbstractLearner):
 
             self.total_loss += loss.item()
 
-    def evaluate(self):
-        episodes = 10
-        returns = np.zeros((episodes,), dtype=np.float32)
-        action_bar = np.zeros(self.n_act, np.int)
-
-        for i in range(episodes):
-            self.net.reset_recc()
-            self.target_net.reset_recc()
-            state = self.env.reset()
-            episode_reward = 0.
-            done = False
-            while not done:
-                action = self.exploit(state)
-                next_state, reward, done, _ = self.env.step(action)
-                action_bar[action] += 1
-                episode_reward += reward
-                state = next_state
-
-            returns[i] = episode_reward
-
-        mean_return = np.mean(returns)
-        std_return = np.std(returns)
-
-        self.writer.add_scalar(
-            'reward/test', mean_return, self.steps)
-        print('Learer  '
-              f'Num steps: {self.steps:<5} '
-              f'reward: {mean_return:<5.1f}+/- {std_return:<5.1f}')
-
-    def exploit(self, state):
-        state = torch.FloatTensor(state).unsqueeze(0).to(self.device)
-        with torch.no_grad():
-            action = self.net(state).argmax().item()
-        return action
-
     def q_value(self, batch):
         # curr Q
         batch['action'] = batch['action'].unsqueeze(2)
@@ -186,13 +146,4 @@ class Learner(AbstractLearner):
 
         return curr_q, target_q
 
-    def process_batch(self, batch):
-        batch['state'] = torch.FloatTensor(batch['state'] / 255.0).to(self.device)
-        batch['state'] = batch['state'][:, self.mask].view(self.batch_size, self.seq_size+self.multi_step, self.n_state, 84, 84)
-        batch['action'] = torch.LongTensor(batch['action']).to(self.device)
-        batch['reward'] = torch.FloatTensor(batch['reward']).to(self.device)
-        batch['done'] = torch.FloatTensor(batch['done']).to(self.device)
-        batch['recc'] = torch.FloatTensor(batch['recc']).to(self.device)
-        batch['target_recc'] = torch.FloatTensor(batch['target_recc']).to(self.device)
-        return batch
 

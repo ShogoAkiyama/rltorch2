@@ -1,93 +1,49 @@
 import os
-
 import torch
 import numpy as np
-import gym
-import time
-
+from torch.utils.tensorboard import SummaryWriter
 from common.replay_memory import EpisodeReplayMemory
 
 from .model import QNetwork
 from common.utils import grad_false
 from common.logger import RewardLogger
-from common.actor import AbstractActor
-
-def actor_process(actor_id, args, shared_memory, shared_weights):
-    actor = Actor(actor_id, args, shared_memory, shared_weights)
-    actor.run()
+from common.abstract import Abstract
 
 
-class Actor(AbstractActor):
+def actor_process(args, actor_id, shared_memory, shared_weights):
+    actor = Actor(args, actor_id, shared_memory, shared_weights)
+    actor.actor_run()
 
-    def __init__(self, actor_id, args, shared_memory, shared_weights):
-        super(Actor, self).__init__(actor_id, args)
 
-        # reward logger
+class Actor(Abstract):
+    def __init__(self, args, actor_id, shared_memory, shared_weights):
+        super(Actor, self).__init__(args, shared_memory, shared_weights)
+        self.actor_id = actor_id
+
+        self.summary_path = os.path.join(
+            './', 'logs', 'summary', f'actor-{self.actor_id}')
+        self.writer = SummaryWriter(log_dir=self.summary_path)
         self.reward_logger = RewardLogger()
 
+        # param
+        self.eps_greedy = 0.4 ** (1 + actor_id * 7 / (args.n_actors - 1)) \
+            if args.n_actors > 1 else 0.4
+        self.n_steps = 0
+        self.n_episodes = 0
+
         # memory
-        self.shared_memory = shared_memory
         self.memory = EpisodeReplayMemory(args)
 
         # network
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.net = QNetwork(self.n_state, self.n_act).eval().apply(grad_false)
         self.target_net = QNetwork(self.n_state, self.n_act).eval().apply(grad_false)
-
         self.net.to(self.device)
         self.target_net.to(self.device)
-
-        self.shared_weights = shared_weights
         self.load_model()
 
         self.env_state = self.env.reset()
-
-        self.key_list = ['state', 'action', 'reward', 'done', 'priority']
-
-        self.interval()
-
-    def interact(self):
-        state = self.env_state
-        action = self.select_action(state)
-        done = self.env_done
-        next_state, reward, next_done, _ = self.env.step(action)
-
-        self.episode_reward += reward
-
-        self.add_episode_buff(state, action, done)
-
-        if next_done:
-            self.log()
-            self.n_episodes += 1
-            self.episode_done = True
-
-            self.reward_deque.append(reward)
-
-            while len(self.reward_deque) > 0:
-
-                self.episode_buff['state'].append(np.zeros((int(self.n_state/4), 84, 84), dtype=np.uint8))
-
-                # calc reward
-                discount_reward = self.calc_discount_reward()
-                self.episode_buff['reward'].append(discount_reward)
-                self.episode_buff['done'].append(True)
-
-                # calc priority
-                self.calc_priority(discount_reward, done=True)
-
-                self.reward_deque.popleft()
-
-        else:
-            self.env_state = next_state
-            self.env_done = next_done
-
-            self.reward_deque.append(reward)
-
-            if self.n_steps >= self.multi_step:
-                # calc reward
-                discount_reward = self.calc_discount_reward()
-                self.episode_buff['reward'].append(discount_reward)
-                self.calc_priority(discount_reward)
+        self.agent_reset()
 
     def select_action(self, state):
         state = torch.FloatTensor(state).to(self.device).unsqueeze(0)
