@@ -77,7 +77,7 @@ class Abstract:
                 self.agent_reset()
 
     def learner_run(self):
-        while len(self.memory) <= 1:#self.batch_size:
+        while len(self.memory) <= self.memory.memory_size / 2:
             while not self.shared_memory.empty():
                 batch = self.shared_memory.get()
                 self.memory.load(batch)
@@ -88,7 +88,7 @@ class Abstract:
         while True:
             self.epochs += 1
             self.train()
-            self.learner_interval()
+            self.learner_log()
 
     def interact(self):
         state = self.env_state
@@ -213,27 +213,24 @@ class Abstract:
               f'reward: {mean_return:<5.1f}+/- {std_return:<5.1f}')
 
     def learner_interval(self):
-        if self.epochs % self.eval_interval == 0:
+        if self.train_steps % self.eval_interval == 0:
             self.evaluate()
 
-        if self.epochs % self.load_memory_interval == 0:
+        if self.train_steps % self.load_memory_interval == 0:
             while not self.shared_memory.empty():
                 batch = self.shared_memory.get()
                 self.memory.load(batch)
-            # self.memory.load()
 
-        if self.epochs % self.save_model_interval == 0:
+        if self.train_steps % self.save_model_interval == 0:
             self.save_model()
 
-        if self.epochs % self.save_model_interval*100 == 0:
+        if self.train_steps % self.save_model_interval*100 == 0:
             self.net.save(self.model_path)
             self.target_net.save(self.model_path, target=True)
 
-        if self.epochs % self.target_update_interval == 0:
+        if self.train_steps % self.target_update_interval == 0:
             self.target_net.load_state_dict(self.net.state_dict())
             self.target_net.eval()
-
-        self.learner_log()
 
     def exploit(self, state):
         state = torch.FloatTensor(state).unsqueeze(0).to(self.device)
