@@ -120,6 +120,8 @@ class Learner(Abstract):
 
             self.total_loss += loss.item()
 
+            self.learner_interval()
+
     def q_value(self, batch):
         # curr Q
         batch['action'] = batch['action'].unsqueeze(2)
