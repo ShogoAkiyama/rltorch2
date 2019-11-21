@@ -15,28 +15,29 @@ import warnings ; warnings.filterwarnings('ignore') # mute warnings, live danger
 import matplotlib.pyplot as plt
 import matplotlib as mpl ; mpl.use("Agg")
 
-occlude = lambda I, mask: I*(1-mask) + gaussian_filter(I, sigma=3)*mask   # choose an area to blur
+def blur_func(I, mask):
+    return I * (1 - mask) + gaussian_filter(I, sigma=3) * mask
+
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-def get_mask(center, size, r):
-    # 中心付近の円だけ1にする
-    y, x = np.ogrid[-center[0]:size[0]-center[0], -center[1]:size[1]-center[1]]
-    keep = x*x + y*y <= 1
-    mask = np.zeros(size)
-    mask[keep] = 1
-    # gaussianフィルタで1付近を正則化する
-    mask = gaussian_filter(mask, sigma=r)
-    return mask/mask.max()
+mask = np.zeros((84*84, 84, 84))
+
+for i in range(84):
+    for j in range(84):
+        y, x = np.ogrid[-i:84 - i, -j:84 - j]
+        circle = np.zeros([84, 84])
+        circle[x * x + y * y <= 1] = 1
+        circle = gaussian_filter(circle, sigma=5)
+        mask[i*84+j] = circle / circle.max()
 
 
-def run_through_model(model, history, ix, interp_func=None, mask=None, blur_memory=None, mode='actor'):
+def run_through_model(model, image, mask=None, blur_memory=None, mode='actor'):
     if mask is None:
         # フレームの画像を取り出す
-        im = history['ins'][ix]
+        im = image
     else:
-        # 入力画像とマスクでフィルターにかける
-        assert(interp_func is not None, "interp func cannot be none")
-        im = interp_func(history['ins'][ix].squeeze(), mask)   # perturb input I -> I'
+        # im = interp_func(history['ins'][ix].squeeze(), mask)   # perturb input I -> I'
+        im = blur_func(image.squeeze(), mask)
 
     # 状態を取り出す
     state = torch.FloatTensor(im).unsqueeze(0)
@@ -47,27 +48,35 @@ def run_through_model(model, history, ix, interp_func=None, mask=None, blur_memo
     return out[0]
 
 
-def score_frame(model, history, ix, r, d, interp_func, mode='actor'):
+# 時刻ixのスコアを入れる
+def score_frame(model, history, ix, r, d, mode='actor'):
     # ix: 時刻の値
     # r: radius of blur
     # d: density of scores (if d==1, then get a score for every pixel...
     #    if d==2 then every other, which is 25% of total pixels for a 2D image)
     assert mode in ['actor', 'critic'], 'mode must be either "actor" or "critic"'
 
+    image = history['ins'][ix]
+
     # ネットワークの出力を得る
-    L = run_through_model(model, history, ix, interp_func, mask=None, mode=mode)
+    state = torch.FloatTensor(image).unsqueeze(0)
+    with torch.no_grad():
+        L = model(state)[0]
+
     # スコアを記憶する配列
     scores = np.zeros((int(84/d)+1, int(84/d)+1))   # saliency scores S(t,i,j)
 
     # 各ピクセルの出力を得る
+    masked_image = blur_func(image.squeeze(), mask[:, np.newaxis, :, :])
+
+    state = torch.FloatTensor(masked_image)
+    with torch.no_grad():
+        l = model(state)
+
     for i in range(0, 84, d):
         for j in range(0, 84, d):
-            # 描画が領域を得る
-            mask = get_mask(center=[i, j], size=[84, 84], r=r)
-            # 部分的にmaskした画像の出力を得る
-            l = run_through_model(model, history, ix, interp_func, mask=mask, mode=mode)
             # d=5としてその部分を描画する
-            scores[int(i/d), int(j/d)] = (L-l).pow(2).sum().mul_(.5).item()
+            scores[int(i/d), int(j/d)] = (L-l[i*84+j]).pow(2).sum().mul_(.5).item()
 
     # 正規化
     pmax = scores.max()
@@ -80,18 +89,14 @@ def saliency_on_atari_frame(saliency, atari, fudge_factor, channel=2, sigma=0):
     # sometimes saliency maps are a bit clearer if you blur them
     # slightly...sigma adjusts the radius of that blur
 
-    pmax = saliency.max()
-    # S = imresize(saliency, size=[160, 160], interp='bilinear').astype(np.float32)
-    S = saliency
+    S = saliency.copy()
+    pmax = S.max()
     # S = S if sigma == 0 else gaussian_filter(S, sigma=sigma)
     S -= S.min()
     S = fudge_factor*pmax * S / S.max()
 
-    # I = atari[0].copy()
-    # I += S
     # # atariの元画像
-    I = (atari[0]*255).astype('uint16')
-    #
+    I = (atari[0].copy()*255).astype('uint16')
     # # attentionを上書きする
     I += S.astype('uint16')
     I = I.clip(1, 255).astype('uint8')
@@ -147,12 +152,10 @@ def make_movie(env_name, checkpoint='*.tar', num_frames=20, first_frame=0, resol
                 frame = history['ins'][ix].squeeze().copy()
 
                 # スコアをつける
-                actor_saliency = score_frame(model, history, ix, radius, density, interp_func=occlude, mode='actor')
-                # critic_saliency = score_frame(model, history, ix, radius, density, interp_func=occlude, mode='critic')
+                actor_saliency = score_frame(model, history, ix, radius, density, mode='actor')
 
-                # フレームに描画する(attention map画像, 元画像)
+                # フレームに描画する(attention画像, 元画像)
                 frame = saliency_on_atari_frame(actor_saliency, frame, fudge_factor=meta['actor_ff'])
-                # frame = saliency_on_atari_frame(critic_saliency, frame, fudge_factor=meta['critic_ff'], channel=0)
 
                 # 描画する
                 plt.imshow(frame)
@@ -203,7 +206,7 @@ if __name__ == '__main__':
     parser.add_argument('-e', '--env', default='PongNoFrameskip-v4', type=str, help='gym environment')
     parser.add_argument('-d', '--density', default=5, type=int, help='density of grid of gaussian blurs')
     parser.add_argument('-r', '--radius', default=5, type=int, help='radius of gaussian blur')
-    parser.add_argument('-f', '--num_frames', default=100, type=int, help='number of frames in movie')
+    parser.add_argument('-f', '--num_frames', default=30, type=int, help='number of frames in movie')
     parser.add_argument('-i', '--first_frame', default=150, type=int, help='index of first frame')
     parser.add_argument('-dpi', '--resolution', default=75, type=int, help='resolution (dpi)')
     parser.add_argument('-s', '--save_dir', default='./movies/', type=str,
