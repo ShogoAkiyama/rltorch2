@@ -5,7 +5,7 @@ import argparse
 import torch
 import matplotlib.animation as manimation
 from scipy.ndimage.filters import gaussian_filter
-from scipy.misc import imresize
+# from scipy.misc import imresize
 import cv2
 
 from model import QNetwork
@@ -41,7 +41,7 @@ def score_frame(model, image, d, n_frames, mode='actor'):
     # assert mode in ['actor', 'critic'], 'mode must be either "actor" or "critic"'
 
     # ネットワークの出力を得る
-    state = torch.FloatTensor(image)
+    state = torch.FloatTensor(image).to(device)
     with torch.no_grad():
         L = model(state)
 
@@ -51,7 +51,7 @@ def score_frame(model, image, d, n_frames, mode='actor'):
     # 各ピクセルの出力を得る
     masked_image = blur_func(image[:, np.newaxis, :, :], mask[:, np.newaxis, :, :])
 
-    state = torch.FloatTensor(masked_image).view(-1, 4, 84, 84)
+    state = torch.FloatTensor(masked_image).to(device).view(-1, 4, 84, 84)
     with torch.no_grad():
         l = model(state)
 
@@ -151,7 +151,7 @@ def make_movie(env_name, checkpoint='*.tar', num_frames=20, first_frame=0, resol
             f.clear()
 
             tstr = time.strftime("%Hh %Mm %Ss", time.gmtime(time.time() - start))
-            print('\ttime: {} | progress: {:.1f}%'.format(tstr, 100 * i / min(num_frames, total_frames)), end='\r')
+            # print('\ttime: {} | progress: {:.1f}%'.format(tstr, 100 * i / min(num_frames, total_frames)), end='\r')
 
         # # フレーム数実行する
         # for i in range(num_frames):
@@ -184,7 +184,7 @@ def rollout(model, env, max_ep_len=3e3, render=False):
     history = {'ins': [], 'logits': [], 'values': [], 'outs': [], 'hx': [], 'cx': []}
 
     state = env.reset()
-    state = torch.FloatTensor(state).to(device)  # get first state
+    # state = torch.FloatTensor(state).to(device)  # get first state
     episode_length, epr, eploss, done = 0, 0, 0, False  # bookkeeping
 
     while not done and episode_length <= max_ep_len:
@@ -194,8 +194,8 @@ def rollout(model, env, max_ep_len=3e3, render=False):
         logit = model(state)
 
         # actionを決定
-        action = logit.max(1)[1].data
-        next_state, reward, done, expert_policy = env.step(action.numpy()[0])
+        action = logit.max(1)[1].item()
+        next_state, reward, done, expert_policy = env.step(action)
         if render:
             env.render()
         state = next_state
@@ -203,7 +203,7 @@ def rollout(model, env, max_ep_len=3e3, render=False):
 
         # save info!
         history['ins'].append(np.array(state))
-        history['logits'].append(logit.data.numpy()[0])
+        # history['logits'].append(logit.data.numpy()[0])
         # history['outs'].append(prob.data.numpy()[0])
         print('\tstep # {}, reward {:.0f}'.format(episode_length, epr), end='\r')
 
@@ -216,7 +216,7 @@ if __name__ == '__main__':
     parser.add_argument('-e', '--env', default='PongNoFrameskip-v4', type=str, help='gym environment')
     parser.add_argument('-d', '--density', default=5, type=int, help='density of grid of gaussian blurs')
     parser.add_argument('-r', '--radius', default=5, type=int, help='radius of gaussian blur')
-    parser.add_argument('-f', '--num_frames', default=30, type=int, help='number of frames in movie')
+    parser.add_argument('-f', '--num_frames', default=3, type=int, help='number of frames in movie')
     parser.add_argument('-i', '--first_frame', default=150, type=int, help='index of first frame')
     parser.add_argument('-dpi', '--resolution', default=75, type=int, help='resolution (dpi)')
     parser.add_argument('-s', '--save_dir', default='./movies/', type=str,
