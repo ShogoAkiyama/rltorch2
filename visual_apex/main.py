@@ -6,6 +6,7 @@ import torch
 import matplotlib.animation as manimation
 from scipy.ndimage.filters import gaussian_filter
 from scipy.misc import imresize
+import cv2
 
 from model import QNetwork
 from env import make_pytorch_env
@@ -31,74 +32,63 @@ for i in range(84):
         mask[i*84+j] = circle / circle.max()
 
 
-def run_through_model(model, image, mask=None, blur_memory=None, mode='actor'):
-    if mask is None:
-        # フレームの画像を取り出す
-        im = image
-    else:
-        # im = interp_func(history['ins'][ix].squeeze(), mask)   # perturb input I -> I'
-        im = blur_func(image.squeeze(), mask)
-
-    # 状態を取り出す
-    state = torch.FloatTensor(im).unsqueeze(0)
-
-    with torch.no_grad():
-        out = model(state)
-
-    return out[0]
-
-
 # 時刻ixのスコアを入れる
-def score_frame(model, history, ix, r, d, mode='actor'):
+def score_frame(model, image, d, n_frames, mode='actor'):
     # ix: 時刻の値
     # r: radius of blur
     # d: density of scores (if d==1, then get a score for every pixel...
     #    if d==2 then every other, which is 25% of total pixels for a 2D image)
-    assert mode in ['actor', 'critic'], 'mode must be either "actor" or "critic"'
-
-    image = history['ins'][ix]
+    # assert mode in ['actor', 'critic'], 'mode must be either "actor" or "critic"'
 
     # ネットワークの出力を得る
-    state = torch.FloatTensor(image).unsqueeze(0)
+    state = torch.FloatTensor(image)
     with torch.no_grad():
-        L = model(state)[0]
+        L = model(state)
 
     # スコアを記憶する配列
-    scores = np.zeros((int(84/d)+1, int(84/d)+1))   # saliency scores S(t,i,j)
+    scores = np.zeros((n_frames, int(84/d)+1, int(84/d)+1))   # saliency scores S(t,i,j)
 
     # 各ピクセルの出力を得る
-    masked_image = blur_func(image.squeeze(), mask[:, np.newaxis, :, :])
+    masked_image = blur_func(image[:, np.newaxis, :, :], mask[:, np.newaxis, :, :])
 
-    state = torch.FloatTensor(masked_image)
+    state = torch.FloatTensor(masked_image).view(-1, 4, 84, 84)
     with torch.no_grad():
         l = model(state)
+
+    n_act = 6
+    l = l.view(-1, 84*84, n_act)
 
     for i in range(0, 84, d):
         for j in range(0, 84, d):
             # d=5としてその部分を描画する
-            scores[int(i/d), int(j/d)] = (L-l[i*84+j]).pow(2).sum().mul_(.5).item()
+            arr = (L-l[:, i*84+j]).pow(2).sum().mul_(.5).item()
+            scores[:, int(i/d), int(j/d)] = arr
 
     # 正規化
-    pmax = scores.max()
-    scores = imresize(scores, size=[84, 84], interp='bilinear').astype(np.float32)
+    pmax = scores.max(axis=1).max(axis=1).reshape(n_frames, 1, 1)
+    scores = scores.transpose(1, 2, 0)
+    scores = cv2.resize(scores, (84, 84), interpolation=cv2.INTER_LINEAR).astype(np.float32)
+    scores = scores.transpose(2, 0, 1)
+    # scores = imresize(scores, size=[84, 84], interp='bilinear').astype(np.float32)
 
-    return pmax * scores / scores.max()
+    return pmax * scores / scores.max(axis=1).max(axis=1).reshape(n_frames, 1, 1)
 
 
-def saliency_on_atari_frame(saliency, atari, fudge_factor, channel=2, sigma=0):
+def saliency_on_atari_frame(saliency, atari, n_frames, fudge_factor):
     # sometimes saliency maps are a bit clearer if you blur them
     # slightly...sigma adjusts the radius of that blur
 
     S = saliency.copy()
-    pmax = S.max()
-    # S = S if sigma == 0 else gaussian_filter(S, sigma=sigma)
-    S -= S.min()
-    S = fudge_factor*pmax * S / S.max()
+    pmax = S.max(axis=1).max(axis=1).reshape(n_frames, 1, 1)
+
+    S -= S.min(axis=1).min(axis=1).reshape(n_frames, 1, 1)
+    S = fudge_factor * pmax * S / S.max(axis=1).max(axis=1).reshape(n_frames, 1, 1)
 
     # # atariの元画像
-    I = (atari[0].copy()*255).astype('uint16')
+    I = (atari[:, -1, :, :].copy()*255).astype('uint16')
     # # attentionを上書きする
-    I += S.astype('uint16')
+    S = S.astype('uint16')
+    I += S
     I = I.clip(1, 255).astype('uint8')
     return I
 
@@ -136,37 +126,57 @@ def make_movie(env_name, checkpoint='*.tar', num_frames=20, first_frame=0, resol
 
     # 保存用の作成
     start = time.time()
+
+    total_frames = len(history['ins'])
+
+    seq_image = np.array(history['ins'][first_frame:first_frame+num_frames])
+    frame = seq_image.copy()
+    actor_saliency = score_frame(model, seq_image.copy(), density, num_frames, mode='actor')
+    frame = saliency_on_atari_frame(actor_saliency, frame, num_frames, fudge_factor=meta['actor_ff'])
+
+    print('save movie')
     FFMpegWriter = manimation.writers['ffmpeg']
     metadata = dict(title=movie_title, artist='greydanus', comment='atari-saliency-video')
     writer = FFMpegWriter(fps=8, metadata=metadata)
-
-    total_frames = len(history['ins'])
     f = plt.figure(figsize=[6, 6 * 1.3], dpi=resolution)
     with writer.saving(f, save_dir + movie_title, resolution):
-        # フレーム数実行する
+        # frame = frame[:, -1]
         for i in range(num_frames):
-            print('i: ', i)
-            ix = first_frame + i  # 20
-            if ix < total_frames:
-                # 画像を取ってくる
-                frame = history['ins'][ix].squeeze().copy()
+            # 描画する
+            plt.imshow(frame[i])
+            plt.gray()
+            plt.title(env_name.lower(), fontsize=15)
+            plt.show()
+            writer.grab_frame()
+            f.clear()
 
-                # スコアをつける
-                actor_saliency = score_frame(model, history, ix, radius, density, mode='actor')
+            tstr = time.strftime("%Hh %Mm %Ss", time.gmtime(time.time() - start))
+            print('\ttime: {} | progress: {:.1f}%'.format(tstr, 100 * i / min(num_frames, total_frames)), end='\r')
 
-                # フレームに描画する(attention画像, 元画像)
-                frame = saliency_on_atari_frame(actor_saliency, frame, fudge_factor=meta['actor_ff'])
-
-                # 描画する
-                plt.imshow(frame)
-                plt.gray()
-                plt.title(env_name.lower(), fontsize=15)
-                plt.show()
-                writer.grab_frame()
-                f.clear()
-
-                tstr = time.strftime("%Hh %Mm %Ss", time.gmtime(time.time() - start))
-                print('\ttime: {} | progress: {:.1f}%'.format(tstr, 100 * i / min(num_frames, total_frames)), end='\r')
+        # # フレーム数実行する
+        # for i in range(num_frames):
+        #     print('i: ', i)
+        #     ix = first_frame + i  # 20
+        #     if ix < total_frames:
+        #         # 画像を取ってくる
+        #         frame = history['ins'][ix].squeeze().copy()
+        #
+        #         # スコアをつける
+        #         actor_saliency = score_frame(model, history['ins'][ix].copy(), radius, density, mode='actor')
+        #
+        #         # フレームに描画する(attention画像, 元画像)
+        #         frame = saliency_on_atari_frame(actor_saliency, frame, fudge_factor=meta['actor_ff'])
+        #
+        #         # 描画する
+        #         plt.imshow(frame)
+        #         plt.gray()
+        #         plt.title(env_name.lower(), fontsize=15)
+        #         plt.show()
+        #         writer.grab_frame()
+        #         f.clear()
+        #
+        #         tstr = time.strftime("%Hh %Mm %Ss", time.gmtime(time.time() - start))
+        #         print('\ttime: {} | progress: {:.1f}%'.format(tstr, 100 * i / min(num_frames, total_frames)), end='\r')
     print('\nfinished.')
 
 
