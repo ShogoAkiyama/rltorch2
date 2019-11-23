@@ -45,10 +45,7 @@ def score_frame(model, image, d, n_frames, mode='actor'):
     with torch.no_grad():
         L = model(state)
 
-    # スコアを記憶する配列
-    scores = np.zeros((n_frames, int(84/d)+1, int(84/d)+1))   # saliency scores S(t,i,j)
-
-    # 各ピクセルの出力を得る
+    # 各ピクセルにマスクする
     masked_image = blur_func(image[:, np.newaxis, :, :], mask[:, np.newaxis, :, :])
 
     state = torch.FloatTensor(masked_image).to(device).view(-1, 4, 84, 84)
@@ -57,6 +54,9 @@ def score_frame(model, image, d, n_frames, mode='actor'):
 
     n_act = 6
     l = l.view(-1, 84*84, n_act)
+
+    # スコアを記憶する配列
+    scores = np.zeros((n_frames, int(84/d)+1, int(84/d)+1))   # saliency scores S(t,i,j)
 
     for i in range(0, 84, d):
         for j in range(0, 84, d):
@@ -151,32 +151,8 @@ def make_movie(env_name, checkpoint='*.tar', num_frames=20, first_frame=0, resol
             f.clear()
 
             tstr = time.strftime("%Hh %Mm %Ss", time.gmtime(time.time() - start))
-            # print('\ttime: {} | progress: {:.1f}%'.format(tstr, 100 * i / min(num_frames, total_frames)), end='\r')
+            print('\ttime: {} | progress: {:.1f}%'.format(tstr, 100 * i / min(num_frames, total_frames)), end='\r')
 
-        # # フレーム数実行する
-        # for i in range(num_frames):
-        #     print('i: ', i)
-        #     ix = first_frame + i  # 20
-        #     if ix < total_frames:
-        #         # 画像を取ってくる
-        #         frame = history['ins'][ix].squeeze().copy()
-        #
-        #         # スコアをつける
-        #         actor_saliency = score_frame(model, history['ins'][ix].copy(), radius, density, mode='actor')
-        #
-        #         # フレームに描画する(attention画像, 元画像)
-        #         frame = saliency_on_atari_frame(actor_saliency, frame, fudge_factor=meta['actor_ff'])
-        #
-        #         # 描画する
-        #         plt.imshow(frame)
-        #         plt.gray()
-        #         plt.title(env_name.lower(), fontsize=15)
-        #         plt.show()
-        #         writer.grab_frame()
-        #         f.clear()
-        #
-        #         tstr = time.strftime("%Hh %Mm %Ss", time.gmtime(time.time() - start))
-        #         print('\ttime: {} | progress: {:.1f}%'.format(tstr, 100 * i / min(num_frames, total_frames)), end='\r')
     print('\nfinished.')
 
 
@@ -216,7 +192,7 @@ if __name__ == '__main__':
     parser.add_argument('-e', '--env', default='PongNoFrameskip-v4', type=str, help='gym environment')
     parser.add_argument('-d', '--density', default=5, type=int, help='density of grid of gaussian blurs')
     parser.add_argument('-r', '--radius', default=5, type=int, help='radius of gaussian blur')
-    parser.add_argument('-f', '--num_frames', default=3, type=int, help='number of frames in movie')
+    parser.add_argument('-f', '--num_frames', default=10, type=int, help='number of frames in movie')
     parser.add_argument('-i', '--first_frame', default=150, type=int, help='index of first frame')
     parser.add_argument('-dpi', '--resolution', default=75, type=int, help='resolution (dpi)')
     parser.add_argument('-s', '--save_dir', default='./movies/', type=str,
