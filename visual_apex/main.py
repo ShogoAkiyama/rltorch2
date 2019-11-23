@@ -17,9 +17,9 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl ; mpl.use("Agg")
 
 def blur_func(I, mask):
-    return I * (1 - mask) + cv2.GaussianBlur(I, (1,1), 3) * mask
+    return I * (1 - mask) + gaussian_filter(I, sigma=3)* mask
 
-device = 'cpu'#'cuda' if torch.cuda.is_available() else 'cpu'
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 mask = np.zeros((84*84, 84, 84))
 
@@ -41,12 +41,12 @@ def score_frame(model, image, d, n_frames, mode='actor'):
     # assert mode in ['actor', 'critic'], 'mode must be either "actor" or "critic"'
 
     # ネットワークの出力を得る
-    state = torch.FloatTensor(image).to(device)
+    state = torch.FloatTensor(image).to(device).unsqueeze(0)
     with torch.no_grad():
         L = model(state)
 
     # 各ピクセルにマスクする
-    masked_image = blur_func(image[:, np.newaxis, :, :], mask[:, np.newaxis, :, :])
+    masked_image = blur_func(image, mask[:, np.newaxis, :, :])
 
     state = torch.FloatTensor(masked_image).to(device).view(-1, 4, 84, 84)
     with torch.no_grad():
@@ -56,22 +56,20 @@ def score_frame(model, image, d, n_frames, mode='actor'):
     l = l.view(-1, 84*84, n_act)
 
     # スコアを記憶する配列
-    scores = np.zeros((n_frames, int(84/d)+1, int(84/d)+1))   # saliency scores S(t,i,j)
+    scores = np.zeros((int(84/d)+1, int(84/d)+1))   # saliency scores S(t,i,j)
 
     for i in range(0, 84, d):
         for j in range(0, 84, d):
             # d=5としてその部分を描画する
             arr = (L-l[:, i*84+j]).pow(2).sum().mul_(.5).item()
-            scores[:, int(i/d), int(j/d)] = arr
+            scores[int(i/d), int(j/d)] = arr
 
     # 正規化
-    pmax = scores.max(axis=1).max(axis=1).reshape(n_frames, 1, 1)
-    scores = scores.transpose(1, 2, 0)
+    pmax = scores.max()
     scores = cv2.resize(scores, (84, 84), interpolation=cv2.INTER_LINEAR).astype(np.float32)
-    scores = scores.transpose(2, 0, 1)
     # scores = imresize(scores, size=[84, 84], interp='bilinear').astype(np.float32)
 
-    return pmax * scores / scores.max(axis=1).max(axis=1).reshape(n_frames, 1, 1)
+    return pmax * scores / scores.max()
 
 
 def saliency_on_atari_frame(saliency, atari, n_frames, fudge_factor):
@@ -79,13 +77,13 @@ def saliency_on_atari_frame(saliency, atari, n_frames, fudge_factor):
     # slightly...sigma adjusts the radius of that blur
 
     S = saliency.copy()
-    pmax = S.max(axis=1).max(axis=1).reshape(n_frames, 1, 1)
+    pmax = S.max()
 
-    S -= S.min(axis=1).min(axis=1).reshape(n_frames, 1, 1)
-    S = fudge_factor * pmax * S / S.max(axis=1).max(axis=1).reshape(n_frames, 1, 1)
+    S -= S.min()
+    S = fudge_factor * pmax * S / S.max()
 
     # # atariの元画像
-    I = (atari[:, -1, :, :].copy()*255).astype('uint16')
+    I = (atari[-1, :, :].copy()*255).astype('uint16')
     # # attentionを上書きする
     S = S.astype('uint16')
     I += S
@@ -129,21 +127,23 @@ def make_movie(env_name, checkpoint='*.tar', num_frames=20, first_frame=0, resol
 
     total_frames = len(history['ins'])
 
-    seq_image = np.array(history['ins'][first_frame:first_frame+num_frames])
-    frame = seq_image.copy()
-    actor_saliency = score_frame(model, seq_image.copy(), density, num_frames, mode='actor')
-    frame = saliency_on_atari_frame(actor_saliency, frame, num_frames, fudge_factor=meta['actor_ff'])
-
-    print('save movie')
     FFMpegWriter = manimation.writers['ffmpeg']
     metadata = dict(title=movie_title, artist='greydanus', comment='atari-saliency-video')
     writer = FFMpegWriter(fps=8, metadata=metadata)
     f = plt.figure(figsize=[6, 6 * 1.3], dpi=resolution)
+
+    # 画像
+    seq_image = np.array(history['ins'][first_frame:first_frame + num_frames])
+
     with writer.saving(f, save_dir + movie_title, resolution):
-        # frame = frame[:, -1]
         for i in range(num_frames):
+            print('i: ', i)
+            frame = seq_image[i].copy()
+            actor_saliency = score_frame(model, seq_image[i].copy(), density, num_frames, mode='actor')
+            frame = saliency_on_atari_frame(actor_saliency, frame, num_frames, fudge_factor=meta['actor_ff'])
+
             # 描画する
-            plt.imshow(frame[i])
+            plt.imshow(frame)
             plt.gray()
             plt.title(env_name.lower(), fontsize=15)
             plt.show()
@@ -192,7 +192,7 @@ if __name__ == '__main__':
     parser.add_argument('-e', '--env', default='PongNoFrameskip-v4', type=str, help='gym environment')
     parser.add_argument('-d', '--density', default=5, type=int, help='density of grid of gaussian blurs')
     parser.add_argument('-r', '--radius', default=5, type=int, help='radius of gaussian blur')
-    parser.add_argument('-f', '--num_frames', default=10, type=int, help='number of frames in movie')
+    parser.add_argument('-f', '--num_frames', default=100, type=int, help='number of frames in movie')
     parser.add_argument('-i', '--first_frame', default=150, type=int, help='index of first frame')
     parser.add_argument('-dpi', '--resolution', default=75, type=int, help='resolution (dpi)')
     parser.add_argument('-s', '--save_dir', default='./movies/', type=str,
