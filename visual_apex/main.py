@@ -17,9 +17,9 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl ; mpl.use("Agg")
 
 def blur_func(I, mask):
-    return I * (1 - mask) + gaussian_filter(I, sigma=3) * mask
+    return I * (1 - mask) + cv2.GaussianBlur(I, (1,1), 3) * mask
 
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
+device = 'cpu'#'cuda' if torch.cuda.is_available() else 'cpu'
 
 mask = np.zeros((84*84, 84, 84))
 
