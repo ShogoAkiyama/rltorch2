@@ -40,6 +40,7 @@ class Actor(object):
         episode_length = 0
         r_sum = 0.
         done = True
+
         while True:
             # apply
             # print(type(self.learner.network.state_dict()))
@@ -81,11 +82,10 @@ class Actor(object):
                     break
             # add to trace - 2
             trace_s.append(s)
+
             # stack n-step
-            # s[n_step+1, 3, width, height]
-            # a[n_step, a_space]
-            # rew[n_step]
-            # a_prob[n_step]
+            # s[n_step+1, 3, width, height], a[n_step, a_space]
+            # rew[n_step], a_prob[n_step]
             trace_s = torch.cat(tuple(trace_s), dim=0)
             zeros = torch.zeros((self.opt.n_step + 1,) + trace_s.size()[1:]).to(device)  # expand
             zeros[:trace_s.size(0)] += trace_s

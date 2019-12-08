@@ -29,6 +29,7 @@ class QManeger(object):
 
     def listening(self):
         while True:
+            # actor put in episode
             trace = self.q_trace.get(block=True)
             # in
             self.traces_s.append(trace[0])
@@ -45,6 +46,7 @@ class QManeger(object):
         res_s, res_a, res_r, res_p = self.traces_s[:batch_size], self.traces_a[:batch_size], \
                                      self.traces_r[:batch_size], self.traces_p[:batch_size]
 
+        # delete
         del self.traces_s[:batch_size]
         del self.traces_a[:batch_size]
         del self.traces_r[:batch_size]

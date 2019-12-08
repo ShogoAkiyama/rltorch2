@@ -38,13 +38,17 @@ class Learner(object):
                     break              # loop for n_step+1 because v in n_step+1 is needed.
 
                 # π/μ[batch]
-                # TODO: cumprod might produce runtime problem
+                # logit_a = a * logit + (1-a)*(1-logit)
                 logit_a = a[:, step, :] * logit.detach() + (1 - a[:, step, :]) * (1 - logit.detach())
+                # prob_a = a * prob + (1-a)*(1-prob)
                 prob_a = a[:, step, :] * prob[:, step, :] + (1 - a[:, step, :]) * (1 - prob[:, step, :])
                 is_rate = torch.cumprod(logit_a/(prob_a + 1e-6), dim=1)[:, -1]
+                # c_i
                 coef.append(torch.min(coef_hat, is_rate))
+                # rho_t
                 rho.append(torch.min(rho_hat, is_rate))
 
+                # entropy
                 # enpy_aspace[batch, 12]
                 # calculating the entropy[batch, 1]
                 # more specifically there are [a_space] entropy for each batch, sum over them here.
@@ -73,8 +77,8 @@ class Learner(object):
                 fix_vp = rew[:, rev_step] + self.opt.gamma * (v[rev_step+1] + value_loss) - v[rev_step]
 
                 # value_loss[batch]
-                td = rew[:, rev_step] + self.opt.gamma * v[rev_step + 1] - v[rev_step]
-                value_loss = self.opt.gamma * coef[rev_step] * value_loss + rho[rev_step] * td
+                td = rho[rev_step] * (rew[:, rev_step] + self.opt.gamma * v[rev_step + 1] - v[rev_step])
+                value_loss = self.opt.gamma * coef[rev_step] * value_loss + td
 
                 # policy_loss = policy_loss - log_probs[i] * Variable(gae)
                 # the td must be detach from network-v
@@ -83,6 +87,7 @@ class Learner(object):
                 # delta_t = rew[:, rev_step] + self.opt.gamma * v[rev_step + 1] - v[rev_step]
                 # gae = gae * self.opt.gamma + delta_t.detach()
 
+                # policy_loss = rho*log_prob*(r+gamma*v - v) - entroy_regul*pi*log(pi)
                 policy_loss = policy_loss \
                               - rho[rev_step] * log_prob[rev_step] * fix_vp.detach() \
                               - self.opt.entropy_coef * entropies[rev_step]
