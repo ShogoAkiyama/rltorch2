@@ -1,42 +1,28 @@
 import torch
-from torch.optim import Adam
 from model import ActorCritic
-import retro
-from torchvision import transforms
 import numpy as np
 
 from env import make_pytorch_env
 
-transform = transforms.Compose([transforms.ToPILImage(),
-                                transforms.Resize(48),
-                                transforms.ToTensor(),
-                                transforms.Normalize(
-                                    mean=(0.5, 0.5, 0.5),
-                                    std=(0.5, 0.5, 0.5))])
-
 class Actor(object):
-    def __init__(self, opt, q_trace, learner):
+    def __init__(self, opt, actor_id,  q_trace, learner):
         self.opt = opt
         self.q_trace = q_trace
         self.learner = learner
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-        self.env = None
-        self.n_state = None
-        self.n_act = None
+        self.env = make_pytorch_env(self.opt.env)
+        self.env.seed(self.opt.seed + actor_id)
+        self.n_state = self.env.observation_space.shape
+        self.n_act = self.env.action_space.n
 
         self.episodes = 0
 
         # モデル
-        self.net = ActorCritic(opt).to(self.device)
+        self.net = ActorCritic(self.n_state[0], self.n_act).to(self.device)
 
-    def performing(self, rank):
+    def performing(self):
         torch.manual_seed(self.opt.seed)
-
-        self.env = make_pytorch_env(self.opt.env)
-        self.env.seed(self.opt.seed + rank)
-        self.n_state = self.env.observation_space.shape
-        self.n_act = self.env.action_space.n
 
         while True:
             self.load_model()
@@ -70,7 +56,6 @@ class Actor(object):
                 state, reward, done, info = self.env.step(action.squeeze().to("cpu").numpy().astype(np.int8))
                 episode_reward += reward
                 state = torch.FloatTensor(state).to(self.device).unsqueeze(0)
-                # state = transform(state).unsqueeze(dim=0).to(self.device)
                 reward = torch.Tensor([reward]).to(self.device)
                 done = done or episode_steps >= self.opt.max_episode_length
 
@@ -79,8 +64,6 @@ class Actor(object):
                 trace_r[i] = reward
                 trace_aprob[i] = logit
                 if done:
-                    # game over punishment
-                    # trace_r[-1] = torch.Tensor([-200.]).to(self.device)
                     break
 
             # add to trace - 2

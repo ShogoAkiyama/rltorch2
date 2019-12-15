@@ -2,7 +2,7 @@ import numpy as np
 import torch
 from torch.optim import Adam
 from model import ActorCritic
-from copy import deepcopy
+from env import make_pytorch_env
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -10,7 +10,13 @@ class Learner(object):
     def __init__(self, opt, q_batch):
         self.opt = opt
         self.q_batch = q_batch
-        self.net = ActorCritic(opt).to(device)
+
+        self.env = make_pytorch_env(self.opt.env)
+        self.env.seed(self.opt.seed)
+        self.n_state = self.env.observation_space.shape
+        self.n_act = self.env.action_space.n
+
+        self.net = ActorCritic(self.n_state[0], self.n_act).to(device)
         self.optimizer = Adam(self.net.parameters(), lr=opt.lr)
         self.net.share_memory()
         # self.shared_weights = shared_weights

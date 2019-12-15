@@ -29,13 +29,13 @@ def weights_init(m):
 
 
 class ActorCritic(nn.Module):
-    def __init__(self, opt):
+    def __init__(self, s_channel, a_space):
         super(ActorCritic, self).__init__()
 
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
         self.vis_layers = nn.Sequential(
-            nn.Conv2d(opt.s_channel, 32, kernel_size=8, stride=4),
+            nn.Conv2d(s_channel, 32, kernel_size=8, stride=4),
             nn.ReLU(True),
             nn.Conv2d(32, 64, kernel_size=4, stride=2),
             nn.ReLU(True),
@@ -45,7 +45,7 @@ class ActorCritic(nn.Module):
         self.lstm = nn.LSTMCell(9*9*64, 256)
 
         self.critic_linear = nn.Linear(256, 1)
-        self.actor_linear = nn.Linear(256, opt.a_space)
+        self.actor_linear = nn.Linear(256, a_space)
 
         self.apply(weights_init)
         self.actor_linear.weight.data = normalized_columns_initializer(
