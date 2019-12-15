@@ -42,24 +42,28 @@ class Learner(object):
                     break
 
                 # Actorの方策: prob, Learnerの方策: logit
+                onehot_actions = self.idx2onehot(action[:, step], self.n_act)
+
                 action_log_prob = prob[:, step, :]
                 logit_log_prob = logit.detach()
-
                 action_prob = torch.exp(action_log_prob)
                 logit_prob = torch.exp(logit_log_prob)
 
-                onehot_actions = index2onehot(action_prob, self.n_act)
+                action_log_prob = torch.sum(action_log_prob * onehot_actions, 1)
+                logit_log_prob = torch.sum(logit_log_prob * onehot_actions, 1)
+                action_prob = torch.sum(action_prob * onehot_actions, 1)
+                logit_prob = torch.sum(logit_prob * onehot_actions, 1)
 
-                is_rate = torch.cumprod(logit_prob / (action_prob + 1e-6), dim=1)[:, -1]
+                is_rate = torch.prod(logit_prob / (action_prob + 1e-6))
 
                 # c_i: min(c, π/μ)∂
                 # rho_t:
-                coef.append(torch.min(coef_hat, is_rate).view(-1, 1))
-                rho.append(torch.min(rho_hat, is_rate).view(-1, 1))
+                coef.append(torch.min(coef_hat, is_rate))
+                rho.append(torch.min(rho_hat, is_rate))
 
                 # entropy
-                enpy_aspace = - torch.exp(logit_log_prob) * logit_log_prob
-                enpy = (enpy_aspace).sum(dim=1)
+                enpy_aspace = - logit_prob * logit_log_prob
+                enpy = (enpy_aspace).sum()
                 entropies.append(enpy)
 
                 log_probs.append(logit_log_prob)
@@ -95,11 +99,10 @@ class Learner(object):
                     .format(value_loss.item(), policy_grads.item(), loss.item())) 
             self.optimizer.step()
 
-    def index2onehot(self, idx, dim):
+    def idx2onehot(self, idx, dim):
         if isinstance(idx, np.int) or isinstance(idx, np.int64):
             one_hot = np.zeros(dim)
             one_hot[idx] = 1.
         else:   # indexが多次元
-            one_hot = np.zeros((len(idx), dim))
-            one_hot[np.arange(len(idx)), idx] = 1.
+            one_hot = torch.eye(self.n_act)[idx.numpy().astype(np.int8)]
         return one_hot

@@ -14,7 +14,7 @@ from actor import Actor
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='IMPALA')
     parser.add_argument('--env', type=str, default='PongNoFrameskip-v4')
-    parser.add_argument('-n', '--n_actors', type=int, default=3)
+    parser.add_argument('-n', '--n_actors', type=int, default=1)
     parser.add_argument('--seed', type=int, default=1, help='random seed')
     parser.add_argument('--gpu', type=int, default=0, help='gpu number')
 
