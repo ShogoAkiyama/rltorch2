@@ -56,8 +56,8 @@ if __name__ == '__main__':
     p.start()
 
     processes.append(p)
-    learner = Learner(args, q_batch, shared_weights)  # inner shared network was used by actors.
-    actors = [Actor(args, q_trace, shared_weights)]
+    learner = Learner(args, q_batch)  # inner shared network was used by actors.
+    actors = [Actor(args, q_trace, learner)]
     for rank, a in enumerate(actors):
         p = mp.Process(target=a.performing, args=(rank,))
         p.start()

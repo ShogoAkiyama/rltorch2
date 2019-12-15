@@ -7,20 +7,20 @@ from copy import deepcopy
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class Learner(object):
-    def __init__(self, opt, q_batch, shared_weights):
+    def __init__(self, opt, q_batch):
         self.opt = opt
         self.q_batch = q_batch
         self.net = ActorCritic(opt).to(device)
         self.optimizer = Adam(self.net.parameters(), lr=opt.lr)
         self.net.share_memory()
-        self.shared_weights = shared_weights
+        # self.shared_weights = shared_weights
 
     def learning(self):
         torch.manual_seed(self.opt.seed)
         coef_hat = torch.Tensor([[self.opt.coef_hat]]).to(device)
         rho_hat = torch.Tensor([[self.opt.rho_hat]]).to(device)
         while True:
-            self.save_model()
+            # self.save_model()
             # batch-trace
             state, action, reward, prob = self.q_batch.get(block=True)
 
@@ -62,15 +62,14 @@ class Learner(object):
             policy_loss = 0
             v_trace = torch.zeros((state.size(1), state.size(0), 1)).to(device)
             for rev_step in reversed(range(state.size(1) - 1)):
-                # compute r_s + γ*v_(s+1) - V(x)  value_lossの部分はいらない気がする
-                advantages = reward[:, rev_step] + self.opt.gamma * (v[rev_step+1] + v_trace) - v[rev_step]
-                #
                 # value_loss[batch] v_traceの計算をするところ
-                delta_V = rho[rev_step] \
-                          * (reward[:, rev_step].view(-1, 1) + self.opt.gamma * v_trace[rev_step+1] - v[rev_step])
-                v_trace[rev_step] = v[rev_step] \
-                                    + delta_V \
-                                    + self.opt.gamma * coef[rev_step] * (v_trace[rev_step+1] - v[rev_step+1])
+                delta_v = rho[rev_step] * (
+                            reward[:, rev_step].view(-1, 1) + self.opt.gamma * v[rev_step+1] - v[rev_step])
+
+                # compute r_s + γ*v_(s+1) - V(x)  value_lossの部分はいらない気がする
+                advantages = reward[:, rev_step].view(-1, 1) + self.opt.gamma * v[rev_step+1] - v[rev_step]
+
+                v_trace[rev_step] = v[rev_step] + delta_v + self.opt.gamma * coef[rev_step] * (v_trace[rev_step+1] - v[rev_step+1])
 
                 # 最大化
                 policy_loss -= rho[rev_step] * log_probs[rev_step] * advantages.detach()
@@ -81,10 +80,6 @@ class Learner(object):
                    - self.opt.entropy_coef * torch.sum(torch.stack(entropies))
 
             loss.backward()
-            torch.nn.utils.clip_grad_norm_(self.network.parameters(), self.opt.max_grad_norm)
-            print("v_loss {:.3f} p_loss {:.3f}".format(v_trace.sum().item(), policy_loss.sum().item()))
+            torch.nn.utils.clip_grad_norm_(self.net.parameters(), self.opt.max_grad_norm)
+            print("loss {:.3f}".format(loss.item()))
             self.optimizer.step()
-
-    def save_model(self):
-        self.shared_weights['net_state'] = deepcopy(self.net).cpu().state_dict()
-        # self.shared_weights['target_net_state'] = deepcopy(self.target_net).cpu().state_dict()

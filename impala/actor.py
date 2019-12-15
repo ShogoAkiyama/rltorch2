@@ -15,10 +15,10 @@ transform = transforms.Compose([transforms.ToPILImage(),
                                     std=(0.5, 0.5, 0.5))])
 
 class Actor(object):
-    def __init__(self, opt, q_trace, shared_weights):
+    def __init__(self, opt, q_trace, learner):
         self.opt = opt
         self.q_trace = q_trace
-        self.shared_weights = shared_weights
+        self.learner = learner
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         self.env = None
@@ -96,7 +96,6 @@ class Actor(object):
 
     def load_model(self):
         try:
-            self.net.load_state_dict(self.shared_weights['net_state'])
-            # self.target_net.load_state_dict(self.shared_weights['target_net_state'])
+            self.net.load_state_dict(self.learner.net.state_dict())
         except:
             print('load error')
