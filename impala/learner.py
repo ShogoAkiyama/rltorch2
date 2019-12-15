@@ -48,6 +48,8 @@ class Learner(object):
                 action_prob = torch.exp(action_log_prob)
                 logit_prob = torch.exp(logit_log_prob)
 
+                onehot_actions = index2onehot(action_prob, self.n_act)
+
                 is_rate = torch.cumprod(logit_prob / (action_prob + 1e-6), dim=1)[:, -1]
 
                 # c_i: min(c, π/μ)∂
@@ -92,3 +94,12 @@ class Learner(object):
             print("value_loss {:.3f}   policy_grads {:.3f} loss {:.3f}"
                     .format(value_loss.item(), policy_grads.item(), loss.item())) 
             self.optimizer.step()
+
+    def index2onehot(self, idx, dim):
+        if isinstance(idx, np.int) or isinstance(idx, np.int64):
+            one_hot = np.zeros(dim)
+            one_hot[idx] = 1.
+        else:   # indexが多次元
+            one_hot = np.zeros((len(idx), dim))
+            one_hot[np.arange(len(idx)), idx] = 1.
+        return one_hot
