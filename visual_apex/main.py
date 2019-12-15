@@ -135,23 +135,23 @@ def make_movie(env_name, checkpoint='*.tar', num_frames=20, first_frame=0, resol
     # 画像
     seq_image = np.array(history['ins'][first_frame:first_frame + num_frames])
 
-    with writer.saving(f, save_dir + movie_title, resolution):
-        for i in range(num_frames):
-            print('i: ', i)
-            frame = seq_image[i].copy()
-            actor_saliency = score_frame(model, seq_image[i].copy(), density, num_frames, mode='actor')
-            frame = saliency_on_atari_frame(actor_saliency, frame, num_frames, fudge_factor=meta['actor_ff'])
-
-            # 描画する
-            plt.imshow(frame)
-            plt.gray()
-            plt.title(env_name.lower(), fontsize=15)
-            plt.show()
-            writer.grab_frame()
-            f.clear()
-
-            tstr = time.strftime("%Hh %Mm %Ss", time.gmtime(time.time() - start))
-            print('\ttime: {} | progress: {:.1f}%'.format(tstr, 100 * i / min(num_frames, total_frames)), end='\r')
+    # with writer.saving(f, save_dir + movie_title, resolution):
+    #     for i in range(num_frames):
+    #         print('i: ', i)
+    #         frame = seq_image[i].copy()
+    #         actor_saliency = score_frame(model, seq_image[i].copy(), density, num_frames, mode='actor')
+    #         frame = saliency_on_atari_frame(actor_saliency, frame, num_frames, fudge_factor=meta['actor_ff'])
+    #
+    #         # 描画する
+    #         plt.imshow(frame)
+    #         plt.gray()
+    #         plt.title(env_name.lower(), fontsize=15)
+    #         plt.show()
+    #         writer.grab_frame()
+    #         f.clear()
+    #
+    #         tstr = time.strftime("%Hh %Mm %Ss", time.gmtime(time.time() - start))
+    #         print('\ttime: {} | progress: {:.1f}%'.format(tstr, 100 * i / min(num_frames, total_frames)), end='\r')
 
     print('\nfinished.')
 
@@ -182,6 +182,7 @@ def rollout(model, env, max_ep_len=3e3, render=False):
         # history['logits'].append(logit.data.numpy()[0])
         # history['outs'].append(prob.data.numpy()[0])
         print('\tstep # {}, reward {:.0f}'.format(episode_length, epr), end='\r')
+        print(logit.cpu().detach().numpy())
 
     return history
 

@@ -1,102 +1,90 @@
+import numpy as np
 import torch
 from torch.optim import Adam
 from model import ActorCritic
+from copy import deepcopy
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class Learner(object):
-    def __init__(self, opt, q_batch):
+    def __init__(self, opt, q_batch, shared_weights):
         self.opt = opt
         self.q_batch = q_batch
-        self.network = ActorCritic(opt).to(device)
-        self.optimizer = Adam(self.network.parameters(), lr=opt.lr)
-        self.network.share_memory()
+        self.net = ActorCritic(opt).to(device)
+        self.optimizer = Adam(self.net.parameters(), lr=opt.lr)
+        self.net.share_memory()
+        self.shared_weights = shared_weights
 
     def learning(self):
         torch.manual_seed(self.opt.seed)
         coef_hat = torch.Tensor([[self.opt.coef_hat]]).to(device)
         rho_hat = torch.Tensor([[self.opt.rho_hat]]).to(device)
         while True:
+            self.save_model()
             # batch-trace
-            # s[batch, n_step+1, 3, width, height]
-            # a[batch, n_step, a_space]
-            # rew[batch, n_step]
-            # a_prob[batch, n_step, a_space]
-            s, a, rew, prob = self.q_batch.get(block=True)
-            ###########################
-            # variables we need later #
-            ###########################
-            v, coef, rho, entropies, log_prob = [], [], [], [], []
-            cx = torch.zeros(self.opt.batch_size, 256).to(device)
-            hx = torch.zeros(self.opt.batch_size, 256).to(device)
-            for step in range(s.size(1)):
-                # value[batch]
-                # logit[batch, 12]
-                value, logit, (hx, cx) = self.network((s[:, step, ...], (hx, cx)))
-                v.append(value)
-                if step >= a.size(1):  # noted that s[, n_step+1, ...] but a[, n_step,...]
-                    break              # loop for n_step+1 because v in n_step+1 is needed.
+            state, action, reward, prob = self.q_batch.get(block=True)
 
-                # π/μ[batch]
-                # logit_a = a * logit + (1-a)*(1-logit)
-                logit_a = a[:, step, :] * logit.detach() + (1 - a[:, step, :]) * (1 - logit.detach())
-                # prob_a = a * prob + (1-a)*(1-prob)
-                prob_a = a[:, step, :] * prob[:, step, :] + (1 - a[:, step, :]) * (1 - prob[:, step, :])
-                is_rate = torch.cumprod(logit_a/(prob_a + 1e-6), dim=1)[:, -1]
-                # c_i
-                coef.append(torch.min(coef_hat, is_rate))
-                # rho_t
-                rho.append(torch.min(rho_hat, is_rate))
+            v, coef, rho, entropies, log_probs = [], [], [], [], []
+
+            self.net.reset_recc(batch_size=self.opt.batch_size)
+            for step in range(state.size(1)):
+                # value[batch]
+                # logit[batch, 8]
+                value, logit = self.net(state[:, step, ...])
+                v.append(value)
+                if step >= self.opt.n_step:
+                    break
+
+                # Actorの方策: prob, Learnerの方策: logit
+                action_log_prob = prob[:, step, :]
+                logit_log_prob = logit.detach()
+
+                action_prob = torch.exp(action_log_prob)
+                logit_prob = torch.exp(logit_log_prob)
+
+                is_rate = torch.cumprod(logit_prob / (action_prob + 1e-6), dim=1)[:, -1]
+
+                # c_i: min(c, π/μ)∂
+                # rho_t:
+                coef.append(torch.min(coef_hat, is_rate).view(-1, 1))
+                rho.append(torch.min(rho_hat, is_rate).view(-1, 1))
 
                 # entropy
-                # enpy_aspace[batch, 12]
-                # calculating the entropy[batch, 1]
-                # more specifically there are [a_space] entropy for each batch, sum over them here.
-                # noted that ~do not~ use detach here
-                enpy_aspace = - torch.log(logit) * logit - torch.log(1-logit) * (1-logit)
+                enpy_aspace = - torch.exp(logit_log_prob) * logit_log_prob
                 enpy = (enpy_aspace).sum(dim=1, keepdim=True)
                 entropies.append(enpy)
 
-                # calculating the prob that the action is taken by target policy
-                # and the prob_pi_a[batch, 12] and log_prob[batch, 1] of this action
-                # noted that ~do not~ use detach here
-                prob_pi_a = (a[:, step, :] * logit) + (1 - a[:, step, :]) * (1 - logit)
-                log_prob_pi_a = torch.log(prob_pi_a).sum(dim=1, keepdim=True)
-                log_prob.append(log_prob_pi_a)
-                # prob_pi_a = torch.cumprod(prob_pi_a, dim=1)[:, -1:]
-                # log_prob_pi_a = torch.log(prob_pi_a)
+                log_probs.append(logit_log_prob)
 
             ####################
             # calculating loss #
             ####################
             policy_loss = 0
-            value_loss = 0
-            # gae = torch.zeros(self.opt.batch_size, 1)
-            for rev_step in reversed(range(s.size(1) - 1)):
-                # compute v_(s+1)[batch] for policy gradient
-                fix_vp = rew[:, rev_step] + self.opt.gamma * (v[rev_step+1] + value_loss) - v[rev_step]
+            v_trace = torch.zeros((state.size(1), state.size(0), 1)).to(device)
+            for rev_step in reversed(range(state.size(1) - 1)):
+                # compute r_s + γ*v_(s+1) - V(x)  value_lossの部分はいらない気がする
+                advantages = reward[:, rev_step] + self.opt.gamma * (v[rev_step+1] + v_trace) - v[rev_step]
+                #
+                # value_loss[batch] v_traceの計算をするところ
+                delta_V = rho[rev_step] \
+                          * (reward[:, rev_step].view(-1, 1) + self.opt.gamma * v_trace[rev_step+1] - v[rev_step])
+                v_trace[rev_step] = v[rev_step] \
+                                    + delta_V \
+                                    + self.opt.gamma * coef[rev_step] * (v_trace[rev_step+1] - v[rev_step+1])
 
-                # value_loss[batch]
-                td = rho[rev_step] * (rew[:, rev_step] + self.opt.gamma * v[rev_step + 1] - v[rev_step])
-                value_loss = self.opt.gamma * coef[rev_step] * value_loss + td
-
-                # policy_loss = policy_loss - log_probs[i] * Variable(gae)
-                # the td must be detach from network-v
-
-                # # dalta_t[batch]
-                # delta_t = rew[:, rev_step] + self.opt.gamma * v[rev_step + 1] - v[rev_step]
-                # gae = gae * self.opt.gamma + delta_t.detach()
-
-                # policy_loss = rho*log_prob*(r+gamma*v - v) - entroy_regul*pi*log(pi)
-                policy_loss = policy_loss \
-                              - rho[rev_step] * log_prob[rev_step] * fix_vp.detach() \
-                              - self.opt.entropy_coef * entropies[rev_step]
+                # 最大化
+                policy_loss -= rho[rev_step] * log_probs[rev_step] * advantages.detach()
 
             self.optimizer.zero_grad()
-            policy_loss = policy_loss.sum()
-            value_loss = value_loss.sum()
-            loss = policy_loss + self.opt.value_loss_coef * value_loss
+            loss = policy_loss.sum() \
+                   + self.opt.value_loss_coef * torch.sum(0.5*(v_trace - torch.stack(v))**2) \
+                   - self.opt.entropy_coef * torch.sum(torch.stack(entropies))
+
             loss.backward()
             torch.nn.utils.clip_grad_norm_(self.network.parameters(), self.opt.max_grad_norm)
-            print("v_loss {:.3f} p_loss {:.3f}".format(value_loss.item(), policy_loss.item()))
+            print("v_loss {:.3f} p_loss {:.3f}".format(v_trace.sum().item(), policy_loss.sum().item()))
             self.optimizer.step()
+
+    def save_model(self):
+        self.shared_weights['net_state'] = deepcopy(self.net).cpu().state_dict()
+        # self.shared_weights['target_net_state'] = deepcopy(self.target_net).cpu().state_dict()

@@ -31,12 +31,18 @@ def weights_init(m):
 class ActorCritic(nn.Module):
     def __init__(self, opt):
         super(ActorCritic, self).__init__()
-        self.conv1 = nn.Conv2d(opt.s_channel, 32, 3, stride=2, padding=1)
-        self.conv2 = nn.Conv2d(32, 32, 3, stride=2, padding=1)
-        self.conv3 = nn.Conv2d(32, 32, 3, stride=2, padding=1)
-        self.conv4 = nn.Conv2d(32, 32, 3, stride=2, padding=1)
 
-        self.lstm = nn.LSTMCell(32 * 4 * 3, 256)  # 不同图像需要修改
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+        self.vis_layers = nn.Sequential(
+            nn.Conv2d(opt.s_channel, 32, kernel_size=8, stride=4),
+            nn.ReLU(True),
+            nn.Conv2d(32, 64, kernel_size=4, stride=2),
+            nn.ReLU(True),
+            Flatten()
+        )
+
+        self.lstm = nn.LSTMCell(9*9*64, 256)
 
         self.critic_linear = nn.Linear(256, 1)
         self.actor_linear = nn.Linear(256, opt.a_space)
@@ -55,14 +61,26 @@ class ActorCritic(nn.Module):
         self.train()
 
     def forward(self, inputs):
-        inputs, (hx, cx) = inputs
-        x = F.elu(self.conv1(inputs))
-        x = F.elu(self.conv2(x))
-        x = F.elu(self.conv3(x))
-        x = F.elu(self.conv4(x))
+        # inputs, (hx, cx) = inputs
+        x = self.vis_layers(inputs)
         # print(x.shape)
         x = x.view(x.size(0), -1)
-        hx, cx = self.lstm(x, (hx, cx))
-        x = hx
+        self.hx, self.cx = self.lstm(x, (self.hx, self.cx))
+        x = self.hx
 
-        return self.critic_linear(x), F.sigmoid(self.actor_linear(x)), (hx, cx)
+        return self.critic_linear(x), F.log_softmax(self.actor_linear(x), dim=-1)
+
+    def reset_recc(self, batch_size=1):
+        self.cx = torch.zeros(batch_size, 256).to(self.device)
+        self.hx = torch.zeros(batch_size, 256).to(self.device)
+
+
+class Flatten(nn.Module):
+    def forward(self, input):
+        return input.view(input.size(0), -1)
+
+
+def weights_init_he(m):
+    if isinstance(m, nn.Conv2d) or isinstance(m, nn.Linear):
+        nn.init.kaiming_uniform_(m.weight, a=0)
+        nn.init.constant_(m.bias, 0)

@@ -1,7 +1,7 @@
 import os
 os.environ["OMP_NUM_THREADS"] = "1"
 import torch.multiprocessing as mp
-from torch.multiprocessing import Queue
+# from torch.multiprocessing import Queue
 import resource
 rlimit = resource.getrlimit(resource.RLIMIT_NOFILE)
 resource.setrlimit(resource.RLIMIT_NOFILE, (6144, rlimit[1]))
@@ -17,7 +17,7 @@ if __name__ == '__main__':
     parser.add_argument('--gpu', type=int, default=0, help='gpu number')
 
     parser.add_argument('--lr', type=float, default=1e-5, help='learning rate')
-    parser.add_argument('--batch-size', type=int, default=16)
+    parser.add_argument('--batch-size', type=int, default=32)
     parser.add_argument('--max-grad-norm', type=float, default=50)
     parser.add_argument('--value-loss-coef', type=float, default=0.5)
     parser.add_argument('--entropy-coef', type=float, default=0.01)
@@ -27,9 +27,9 @@ if __name__ == '__main__':
     parser.add_argument('--rho-hat', type=float, default=1.0)
 
     # 游戏配置
-    parser.add_argument('--env', type=str, default='Phoenix-Atari2600')
-    parser.add_argument('--s-channel', type=int, default=3)
-    parser.add_argument('--a-space', type=int, default=8)
+    parser.add_argument('--env', type=str, default='MsPacmanNoFrameskip-v4')
+    parser.add_argument('--s-channel', type=int, default=4)
+    parser.add_argument('--a-space', type=int, default=9)
     parser.add_argument('--max-episode-length', type=int, default=100000)
 
     args = parser.parse_args()
@@ -40,19 +40,24 @@ if __name__ == '__main__':
     except RuntimeError:
         pass
 
+    # shared weights
+    mp_manager = mp.Manager()
+    shared_weights = mp_manager.dict()
+
     processes = []
+
     # data communication
-    q_trace = Queue(maxsize=300)
-    q_batch = Queue(maxsize=3)
+    q_trace = mp.Queue(maxsize=300)
+    q_batch = mp.Queue(maxsize=3)
+
+    # QManager
     q_manager = QManeger(args, q_trace, q_batch)
     p = mp.Process(target=q_manager.listening)
     p.start()
-    processes.append(p)
 
-    learner = Learner(args, q_batch)  # inner shared network was used by actors.
-    actors = [Actor(args, q_trace, learner),
-              Actor(args, q_trace, learner),
-              Actor(args, q_trace, learner)]
+    processes.append(p)
+    learner = Learner(args, q_batch, shared_weights)  # inner shared network was used by actors.
+    actors = [Actor(args, q_trace, shared_weights)]
     for rank, a in enumerate(actors):
         p = mp.Process(target=a.performing, args=(rank,))
         p.start()

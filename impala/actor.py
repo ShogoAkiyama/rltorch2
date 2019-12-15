@@ -5,9 +5,8 @@ import retro
 from torchvision import transforms
 import numpy as np
 
-from common.env import make_pytorch_env
+from env import make_pytorch_env
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 transform = transforms.Compose([transforms.ToPILImage(),
                                 transforms.Resize(48),
                                 transforms.ToTensor(),
@@ -16,99 +15,88 @@ transform = transforms.Compose([transforms.ToPILImage(),
                                     std=(0.5, 0.5, 0.5))])
 
 class Actor(object):
-    def __init__(self, opt, q_trace, learner):
+    def __init__(self, opt, q_trace, shared_weights):
         self.opt = opt
         self.q_trace = q_trace
-        self.learner = learner
+        self.shared_weights = shared_weights
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-        # 游戏
         self.env = None
-        # s_channel = self.env.observation_space.shape[0]
-        # a_space = self.env.action_space
+        self.n_state = None
+        self.n_act = None
 
-        # 网络
-        self.behaviour = ActorCritic(opt).to(device)
+        self.episodes = 0
+
+        # モデル
+        self.net = ActorCritic(opt).to(self.device)
 
     def performing(self, rank):
         torch.manual_seed(self.opt.seed)
-        # 每个线程初始化环境
-        self.env = retro.make(game=self.opt.env)
-        self.env.seed(self.opt.seed + rank)
 
-        s = self.env.reset()
-        s = transform(s).unsqueeze(dim=0).to(device)
-        episode_length = 0
-        r_sum = 0.
-        done = True
+        self.env = make_pytorch_env(self.opt.env)
+        self.env.seed(self.opt.seed + rank)
+        self.n_state = self.env.observation_space.shape
+        self.n_act = self.env.action_space.n
 
         while True:
-            # apply
-            # print(type(self.learner.network.state_dict()))
-            self.behaviour.load_state_dict(self.learner.network.state_dict())
-            # LSTM
-            if done:
-                cx = torch.zeros(1, 256).to(device)
-                hx = torch.zeros(1, 256).to(device)
-            else:
-                cx = cx.detach()
-                hx = hx.detach()
+            self.load_model()
+            self.train_episode()
 
-            trace_s, trace_a, trace_rew, trace_aprob = [], [], [], []
+    def train_episode(self):
+        self.episodes += 1
+        episode_steps = 0
+        episode_reward = 0
+        done = False
+        state = self.env.reset()
+        state = torch.FloatTensor(state).to(self.device).unsqueeze(0)
+
+        self.net.reset_recc()
+
+        while not done:
+            trace_s = torch.zeros((self.opt.n_step + 1,) + self.n_state).to(self.device)
+            trace_a = torch.zeros(self.opt.n_step).to(self.device)
+            trace_r = torch.zeros(self.opt.n_step).to(self.device)
+            trace_aprob = torch.zeros((self.opt.n_step, self.n_act)).to(self.device)
+
             # collect n-step
-            for n in range(self.opt.n_step):
-                episode_length += 1
+            for i in range(self.opt.n_step):
+                episode_steps += 1
                 #  add to trace - 0
-                trace_s.append(s)
-                value, logit, (hx, cx) = self.behaviour((s, (hx, cx)))
+                trace_s[i] = state.detach()
+                value, logit = self.net(state)
                 logit = logit.detach()
-                action = torch.bernoulli(logit)
+                action = torch.exp(logit).argmax(dim=-1)
 
-                s, rew, done, info = self.env.step(action.squeeze().to("cpu").numpy().astype(np.int8))
-                r_sum += rew
-                s = transform(s).unsqueeze(dim=0).to(device)
-                rew = torch.Tensor([rew]).to(device)
-                done = done or episode_length >= self.opt.max_episode_length
+                state, reward, done, info = self.env.step(action.squeeze().to("cpu").numpy().astype(np.int8))
+                episode_reward += reward
+                state = torch.FloatTensor(state).to(self.device).unsqueeze(0)
+                # state = transform(state).unsqueeze(dim=0).to(self.device)
+                reward = torch.Tensor([reward]).to(self.device)
+                done = done or episode_steps >= self.opt.max_episode_length
 
-                #  add to trace - 1
-                trace_a.append(action)
-                trace_rew.append(rew)
-                trace_aprob.append(logit)
+                # add to trace - 1
+                trace_a[i] = action
+                trace_r[i] = reward
+                trace_aprob[i] = logit
                 if done:
-                    print("over, reward {}".format(r_sum))
-                    r_sum = 0
-                    episode_length = 0
                     # game over punishment
-                    trace_rew[-1] = torch.Tensor([-200.]).to(device)
+                    # trace_r[-1] = torch.Tensor([-200.]).to(self.device)
                     break
+
             # add to trace - 2
-            trace_s.append(s)
-
-            # stack n-step
-            # s[n_step+1, 3, width, height], a[n_step, a_space]
-            # rew[n_step], a_prob[n_step]
-            trace_s = torch.cat(tuple(trace_s), dim=0)
-            zeros = torch.zeros((self.opt.n_step + 1,) + trace_s.size()[1:]).to(device)  # expand
-            zeros[:trace_s.size(0)] += trace_s
-            trace_s = zeros
-
-            trace_a = torch.cat(tuple(trace_a), dim=0)
-            zeros = torch.zeros((self.opt.n_step,) + trace_a.size()[1:]).to(device)  # expand
-            zeros[:trace_a.size(0)] += trace_a
-            trace_a = zeros
-
-            trace_rew = torch.cat(tuple(trace_rew), dim=0)
-            zeros = torch.zeros(self.opt.n_step).to(device)  # expand
-            zeros[:trace_rew.size(0)] += trace_rew
-            trace_rew = zeros
-
-            trace_aprob = torch.cat(tuple(trace_aprob), dim=0)
-            zeros = torch.zeros((self.opt.n_step,) + trace_aprob.size()[1:]).to(device)  # expand
-            zeros[:trace_aprob.size(0)] += trace_aprob
-            trace_aprob = zeros
+            trace_s[i] = state
 
             # submit trace to queue
-            self.q_trace.put((trace_s.to("cpu"), trace_a.to("cpu"), trace_rew.to("cpu"), trace_aprob.to("cpu")), block=True)
+            # [state, action, reward. action prob]
+            self.q_trace.put((trace_s.to("cpu"), trace_a.to("cpu"), trace_r.to("cpu"), trace_aprob.to("cpu")), block=True)
 
-            if done:
-                s = self.env.reset()
-                s = transform(s).unsqueeze(dim=0).to(device)
+        print(f'episode: {self.episodes:<4}  '
+              f'episode steps: {episode_steps:<4}  '
+              f'reward: {episode_reward:<5.1f}')
+
+    def load_model(self):
+        try:
+            self.net.load_state_dict(self.shared_weights['net_state'])
+            # self.target_net.load_state_dict(self.shared_weights['target_net_state'])
+        except:
+            print('load error')
