@@ -14,7 +14,7 @@ from actor import Actor
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='IMPALA')
     parser.add_argument('--env', type=str, default='PongNoFrameskip-v4')
-    parser.add_argument('-n', '--n_actors', type=int, default=1)
+    parser.add_argument('-n', '--n_actors', type=int, default=3)
     parser.add_argument('--seed', type=int, default=1, help='random seed')
     parser.add_argument('--gpu', type=int, default=0, help='gpu number')
 
@@ -28,9 +28,6 @@ if __name__ == '__main__':
     parser.add_argument('--coef-hat', type=float, default=1.0)
     parser.add_argument('--rho-hat', type=float, default=1.0)
 
-    # 游戏配置
-    # parser.add_argument('--s-channel', type=int, default=4)
-    # parser.add_argument('--a-space', type=int, default=9)
     parser.add_argument('--max-episode-length', type=int, default=100000)
 
     args = parser.parse_args()
@@ -64,8 +61,8 @@ if __name__ == '__main__':
     for actor_id in range(args.n_actors):
         actors.append(Actor(args, actor_id, q_trace, learner))
 
-    for rank, a in enumerate(actors):
-        p = mp.Process(target=a.performing)
+    for rank, actor in enumerate(actors):
+        p = mp.Process(target=actor.performing)
         p.start()
         processes.append(p)
 

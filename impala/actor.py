@@ -73,7 +73,8 @@ class Actor(object):
             # [state, action, reward. action prob]
             self.q_trace.put((trace_s.to("cpu"), trace_a.to("cpu"), trace_r.to("cpu"), trace_aprob.to("cpu")), block=True)
 
-        print(f'episode: {self.episodes:<4}  '
+        print(" "*20,
+              f'episode: {self.episodes:<4}  '
               f'episode steps: {episode_steps:<4}  '
               f'reward: {episode_reward:<5.1f}')
 

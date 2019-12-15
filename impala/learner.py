@@ -57,7 +57,7 @@ class Learner(object):
 
                 # entropy
                 enpy_aspace = - torch.exp(logit_log_prob) * logit_log_prob
-                enpy = (enpy_aspace).sum(dim=1, keepdim=True)
+                enpy = (enpy_aspace).sum(dim=1)
                 entropies.append(enpy)
 
                 log_probs.append(logit_log_prob)
@@ -65,7 +65,7 @@ class Learner(object):
             ####################
             # calculating loss #
             ####################
-            policy_loss = 0
+            policy_grads = 0
             v_trace = torch.zeros((state.size(1), state.size(0), 1)).to(device)
             for rev_step in reversed(range(state.size(1) - 1)):
                 # value_loss[batch] v_traceの計算をするところ
@@ -78,14 +78,17 @@ class Learner(object):
                 v_trace[rev_step] = v[rev_step] + delta_v + self.opt.gamma * coef[rev_step] * (v_trace[rev_step+1] - v[rev_step+1])
 
                 # 最大化
-                policy_loss -= rho[rev_step] * log_probs[rev_step] * advantages.detach()
+                policy_grads += rho[rev_step] * log_probs[rev_step] * advantages.detach()
 
             self.optimizer.zero_grad()
-            loss = policy_loss.sum() \
-                   + self.opt.value_loss_coef * torch.sum(0.5*(v_trace - torch.stack(v))**2) \
-                   - self.opt.entropy_coef * torch.sum(torch.stack(entropies))
+            value_loss = torch.sum(0.5*(v_trace - torch.stack(v))**2)
+            policy_grads = policy_grads.sum()
+            loss = - policy_grads.sum() \
+                   + self.opt.value_loss_coef * value_loss \
+                   - self.opt.entropy_coef * torch.mean(torch.stack(entropies))
 
             loss.backward()
             torch.nn.utils.clip_grad_norm_(self.net.parameters(), self.opt.max_grad_norm)
-            print("loss {:.3f}".format(loss.item()))
+            print("value_loss {:.3f}   policy_grads {:.3f} loss {:.3f}"
+                    .format(value_loss.item(), policy_grads.item(), loss.item())) 
             self.optimizer.step()
