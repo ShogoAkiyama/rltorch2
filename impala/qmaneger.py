@@ -11,39 +11,45 @@ class QManeger(object):
         self.traces_s = []
         self.traces_a = []
         self.traces_r = []
+        self.traces_d = []
         self.traces_p = []
         self.lock = mp.Lock()
 
         self.q_trace = q_trace
         self.q_batch = q_batch
         self.opt = opt
-        self.device = device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     def listening(self):
         while True:
-            # actor put in episode
-            trace = self.q_trace.get(block=True)
-            # in
-            self.traces_s.append(trace[0])
-            self.traces_a.append(trace[1])
-            self.traces_r.append(trace[2])
-            self.traces_p.append(trace[3])
-            # produce_batch
+            traces = self.q_trace.get(block=True)
+            self.traces_s.append(traces[0])
+            self.traces_a.append(traces[1])
+            self.traces_r.append(traces[2])
+            self.traces_d.append(traces[3])
+            self.traces_p.append(traces[4])
+
             if len(self.traces_s) > self.opt.batch_size:
                 self.produce_batch()
 
     def produce_batch(self):
         batch_size = self.opt.batch_size
-        # out
-        res_s, res_a, res_r, res_p = self.traces_s[:batch_size], self.traces_a[:batch_size], \
-                                     self.traces_r[:batch_size], self.traces_p[:batch_size]
+        res_s, res_a, res_r, res_d, res_p = self.traces_s[:batch_size], self.traces_a[:batch_size], \
+                                            self.traces_r[:batch_size], self.traces_d[:batch_size], \
+                                            self.traces_p[:batch_size]
 
         # delete
         del self.traces_s[:batch_size]
         del self.traces_a[:batch_size]
         del self.traces_r[:batch_size]
+        del self.traces_d[:batch_size]
         del self.traces_p[:batch_size]
 
+        res_s = torch.FloatTensor(res_s).to(self.device)
+        res_a = torch.LongTensor(res_a).to(self.device)
+        res_r = torch.FloatTensor(res_r).to(self.device)
+        res_d = torch.FloatTensor(res_d).to(self.device)
+        res_p = torch.FloatTensor(res_p).to(self.device)
+
         # stack batch and put
-        self.q_batch.put((torch.stack(res_s, dim=0).to(self.device), torch.stack(res_a, dim=0).to(self.device),
-                          torch.stack(res_r, dim=0).to(self.device), torch.stack(res_p, dim=0).to(self.device)))
+        self.q_batch.put((res_s, res_a, res_r, res_d, res_p))

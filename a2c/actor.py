@@ -18,8 +18,8 @@ class Actor:
 
         self.env = gym.make(self.opt.env)
         self.env_state = self.env.reset()
-        self.ob_space = self.env.observation_space.shape[0]
-        self.ac_space = self.env.action_space.n
+        self.n_state = self.env.observation_space.shape[0]
+        self.n_act = self.env.action_space.n
 
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -31,11 +31,10 @@ class Actor:
         self.eps_greedy = 0.4 ** (1 + actor_id * 7 / (opt.n_actors - 1)) \
             if opt.n_actors > 1 else 0.4
 
-        self.n_steps = 0
         self.n_episodes = 0
 
-        self.actor = ActorNetwork(self.ob_space, self.ac_space).to(self.device)  # ActorNetwork
-        self.critic = CriticNetwork(self.ob_space).to(self.device)  # CriticNetwork
+        self.actor = ActorNetwork(self.n_state, self.n_act).to(self.device)  # ActorNetwork
+        self.critic = CriticNetwork(self.n_state).to(self.device)  # CriticNetwork
 
     def performing(self):
         torch.manual_seed(self.opt.seed)
@@ -62,11 +61,11 @@ class Actor:
                 states.append(self.env_state)
                 action = self.exploration_action(self.env_state)
                 next_state, reward, done, _ = self.env.step(action)
-                actions.append(action)
 
                 if done:
                     reward = -10
 
+                actions.append(action)
                 rewards.append(reward)
                 self.env_state = next_state
                 final_state = next_state
@@ -80,31 +79,29 @@ class Actor:
                 self.n_episodes += 1
                 self.episode_done = True
             else:
-                final_action = self.action(final_state)
-                final_value = self.value(final_state, final_action)  # Q(s,a)を出力
+                final_value = self.value(final_state)
                 self.episode_done = False
 
             ## discount_rewards
-            rewards = self._discount_reward(rewards, final_value)  # 報酬でなく，行動価値とすることで先までの価値を知ることができる
-            self.n_steps += 1
+            rewards = self._discount_reward(rewards, final_value)
 
             self.q_trace.put((states, actions, rewards),
                              block=True)
 
     def _softmax_action(self, state):
-        # state_var = to_tensor_var([state], self.use_cuda)
-        state_var = torch.FloatTensor([state]).to(self.device)
-        softmax_action_var = torch.exp(self.actor(state_var))  # expをかけて，行動確率とする
-        softmax_action = softmax_action_var.cpu().detach().numpy()
+        state = torch.FloatTensor([state]).to(self.device)
+        softmax_action = torch.exp(self.actor(state))  # expをかけて，行動確率とする
+        softmax_action = softmax_action.cpu().detach().numpy()
         return softmax_action
 
     def exploration_action(self, state):
         softmax_action = self._softmax_action(state)
 
         if np.random.rand() > self.eps_greedy:
-            return np.argmax(softmax_action)
+            action = np.argmax(softmax_action)
         else:
-            return np.random.choice(2)
+            action = np.random.choice(self.n_act)
+        return action
 
     # choose an action based on state for execution
     def action(self, state):
@@ -112,12 +109,8 @@ class Actor:
         action = np.argmax(softmax_action)
         return action
 
-    def value(self, state, action):  # Qを出力
-        # state_var = to_tensor_var([state], self.use_cuda)
+    def value(self, state):  # Qを出力
         state_var = torch.FloatTensor([state]).to(self.device)
-        onehot_action = index2onehot(action, self.ac_space)  # 行動をonehot化
-        # action_var = to_tensor_var([onehot_action], self.use_cuda)
-        action_var = torch.FloatTensor([onehot_action]).to(self.device)
         q_var = self.critic(state_var)  # 行動価値を出value
         q = q_var.cpu().detach().numpy()
         return q

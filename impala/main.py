@@ -12,13 +12,13 @@ from learner import Learner
 from actor import Actor
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='IMPALA')
-    parser.add_argument('--env', type=str, default='PongNoFrameskip-v4')
-    parser.add_argument('-n', '--n_actors', type=int, default=1)
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--env', type=str, default='CartPole-v0')   #'PongNoFrameskip-v4')
+    parser.add_argument('-n', '--n_actors', type=int, default=3)
     parser.add_argument('--seed', type=int, default=1, help='random seed')
     parser.add_argument('--gpu', type=int, default=0, help='gpu number')
 
-    parser.add_argument('--lr', type=float, default=1e-5, help='learning rate')
+    parser.add_argument('--lr', type=float, default=2.5e-4, help='learning rate')
     parser.add_argument('--batch-size', type=int, default=32)
     parser.add_argument('--max-grad-norm', type=float, default=50)
     parser.add_argument('--value-loss-coef', type=float, default=0.5)
@@ -56,7 +56,6 @@ if __name__ == '__main__':
     processes.append(p)
     learner = Learner(args, q_batch)  # inner shared network was used by actors.
 
-    # actors = [Actor(args, q_trace, learner)]
     actors = []
     for actor_id in range(args.n_actors):
         actors.append(Actor(args, actor_id, q_trace, learner))

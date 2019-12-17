@@ -52,12 +52,4 @@ class Learner:
             critic_loss.backward()
             self.critic_optimizer.step()
 
-            print(' '*20, 'actor loss:{:.3f}  critic loss:{:.3f}'.format(actor_loss.item(), critic_loss.item()))
-
-    def idx2onehot(self, idx, dim):
-        if isinstance(idx, np.int) or isinstance(idx, np.int64):
-            one_hot = np.zeros(dim)
-            one_hot[idx] = 1.
-        else:   # indexが多次元
-            one_hot = torch.eye(self.n_act)[idx.numpy().astype(np.int8)]
-        return one_hot
+            # print(' '*20, 'actor loss:{:.3f}  critic loss:{:.3f}'.format(actor_loss.item(), critic_loss.item()))

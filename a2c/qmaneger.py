@@ -20,13 +20,6 @@ class QManeger(object):
         self.traces_a.append(action)
         self.traces_r.append(reward)
 
-    def push(self, states, actions, rewards):
-        if isinstance(states, list):
-            for s, a, r in zip(states, actions, rewards):
-                self._push_one(s, a, r)
-        else:
-            self._push_one(states, actions, rewards)
-
     def listening(self):
         while True:
             traces = self.q_trace.get(block=True)

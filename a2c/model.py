@@ -17,6 +17,7 @@ class ActorNetwork(nn.Module):
         h = F.log_softmax(h, dim=-1)
         return h
 
+
 class CriticNetwork(nn.Module):   # 行動価値を出力する
     def __init__(self, ob_space):
       super(CriticNetwork, self).__init__()
