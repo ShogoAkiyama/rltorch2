@@ -5,3 +5,5 @@
 logs/
 visualize_atari/
 nohup.out
+
+_vizdoom.ini
