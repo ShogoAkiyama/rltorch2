@@ -32,6 +32,7 @@ class Actor:
             if opt.n_actors > 1 else 0.4
 
         self.n_episodes = 0
+        self.n_steps = 0
 
         self.actor = ActorNetwork(self.n_state, self.n_act).to(self.device)  # ActorNetwork
         self.critic = CriticNetwork(self.n_state).to(self.device)  # CriticNetwork
@@ -54,6 +55,7 @@ class Actor:
         self.env_state = state
 
         while not done:
+            self.n_steps += 1
             states = []
             actions = []
             rewards = []
@@ -62,8 +64,13 @@ class Actor:
                 action = self.exploration_action(self.env_state)
                 next_state, reward, done, _ = self.env.step(action)
 
+                # reward = 0
                 if done:
                     reward = -10
+                    # if self.n_steps > 190:
+                    #     reward = 1
+                    # else:
+                    #     reward = -1
 
                 actions.append(action)
                 rewards.append(reward)
@@ -75,6 +82,7 @@ class Actor:
 
             # n_step回終了
             if done:
+                self.n_steps += 1
                 final_value = 0.0
                 self.n_episodes += 1
                 self.episode_done = True
