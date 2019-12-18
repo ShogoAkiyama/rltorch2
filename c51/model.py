@@ -1,50 +1,48 @@
-# from __future__ import print_function
-#
-# from keras.models import Model
-# from keras.layers import Convolution2D, Dense, Flatten, Input
-# from keras.optimizers import Adam
-#
-# class Networks(object):
-#
-#     @staticmethod
-#     def value_distribution_network(input_shape, num_atoms, action_size, learning_rate):
-#         """Model Value Distribution
-#         With States as inputs and output Probability Distributions for all Actions
-#         """
-#
-#         state_input = Input(shape=(input_shape))
-#         cnn_feature = Convolution2D(32, 8, 8, subsample=(4,4), activation='relu')(state_input)
-#         cnn_feature = Convolution2D(64, 4, 4, subsample=(2,2), activation='relu')(cnn_feature)
-#         cnn_feature = Convolution2D(64, 3, 3, activation='relu')(cnn_feature)
-#         cnn_feature = Flatten()(cnn_feature)
-#         cnn_feature = Dense(512, activation='relu')(cnn_feature)
-#
-#         distribution_list = []
-#         for i in range(action_size):
-#             distribution_list.append(Dense(num_atoms, activation='softmax')(cnn_feature))
-#
-#         model = Model(input=state_input, output=distribution_list)
-#
-#         adam = Adam(lr=learning_rate)
-#         model.compile(loss='categorical_crossentropy',optimizer=adam)
-#
-#         return model
-
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
-class Network(nn.Module):
-    def __init__(self):
-        super(Model, self).__init__(self)
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        self.vis_layers = nn.Sequential(
-            nn.Conv2d(s_channel, 32, kernel_size=8, stride=4),
-            nn.ReLU(True),
+
+class ConvNet(nn.Module):
+    def __init__(self, state_len, n_actions, n_atom):
+        super(ConvNet, self).__init__()
+
+        self.n_actions = n_actions
+        self.n_atom = n_atom
+
+        self.feature_extraction = nn.Sequential(
+            nn.Conv2d(state_len, 32, kernel_size=8, stride=4),
+            nn.ReLU(),
             nn.Conv2d(32, 64, kernel_size=4, stride=2),
-            nn.ReLU(True),
-            Flatten()
+            nn.ReLU(),
+            nn.Conv2d(64, 64, kernel_size=3, stride=1),
+            nn.ReLU(),
         )
+        self.fc = nn.Linear(7 * 7 * 64, 512)
+
+        # action value distribution
+        self.fc_q = nn.Linear(512, n_actions * n_atom)
+
+        # Initialization
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                # nn.init.orthogonal_(m.weight, gain = np.sqrt(2))
+                nn.init.xavier_normal_(m.weight)
+                nn.init.constant_(m.bias, 0.0)
+            elif isinstance(m, nn.Linear):
+                nn.init.kaiming_normal_(m.weight)
+                nn.init.constant_(m.bias, 0.0)
 
     def forward(self, x):
+        # x.size(0) : minibatch size
+        mb_size = x.size(0)
+        # x: (m, 84, 84, 4) tensor
+        x = self.feature_extraction(x / 255.0)
+        # x.size(0) : mini-batch size
+        x = x.view(x.size(0), -1)
+        x = F.relu(self.fc(x))
 
-        return x
+        # note that output of C-51 is prob mass of value distribution
+        action_value = F.softmax(self.fc_q(x).view(mb_size, self.n_actions, self.n_atom), dim=2)
+
+        return action_value

@@ -7,7 +7,7 @@ from qmaneger import QManeger
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='IMPALA')
-    parser.add_argument('--env', type=str, default='CartPole-v0')#'PongNoFrameskip-v4')
+    parser.add_argument('--env', type=str, default='CartPole-v0')
     parser.add_argument('-n', '--n_actors', type=int, default=3)
     parser.add_argument('--seed', type=int, default=1, help='random seed')
     parser.add_argument('--gpu', type=int, default=0, help='gpu number')
@@ -29,7 +29,6 @@ if __name__ == '__main__':
 
     # shared weights
     mp_manager = mp.Manager()
-    shared_weights = mp_manager.dict()
 
     processes = []
 
