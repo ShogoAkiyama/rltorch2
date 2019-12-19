@@ -38,9 +38,7 @@ if __name__ == '__main__':
     except RuntimeError:
         pass
 
-    # shared weights
     mp_manager = mp.Manager()
-    shared_weights = mp_manager.dict()
 
     processes = []
 

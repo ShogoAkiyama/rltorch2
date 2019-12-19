@@ -1,26 +1,26 @@
-from model import ConvNet
-from wrappers import make_pytorch_env
+import gym
 import torch
 import numpy as np
-import time
-from collections import deque
+
+from model import ConvNet
 
 
 class Actor:
     def __init__(self, args, actor_id, q_trace, learner):
+        self.seed = args.seed
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.q_trace = q_trace
         self.learner = learner
 
-        self.env = make_pytorch_env(args.env)
+        self.env = gym.make(args.env)
+        self.env_state = self.env.reset()
         self.n_act = self.env.action_space.n
         self.n_state = self.env.observation_space.shape[0]
         self.n_atom = args.atom
 
         self.pred_net = ConvNet(self.n_state, self.n_act, self.n_atom).to(self.device)
 
-        # discrete values
-        # prior knowledge of return distribution,
+        # パラメータ
         self.v_min = args.v_min
         self.v_max = args.v_max
 
@@ -28,59 +28,97 @@ class Actor:
         self.v_range = np.linspace(self.v_min, self.v_max, self.n_atom)
         self.value_range = torch.FloatTensor(self.v_range).to(self.device)  # (N_ATOM)
 
-        # episode step for accumulate reward
-        self.epi_reward = deque(maxlen=100)
-
         self.step_num = args.step_num
         self.eps_greedy = 0.4 ** (1 + actor_id * 7 / (args.n_actors - 1)) \
             if args.n_actors > 1 else 0.4
 
-        self.result = []
+        self.n_episodes = 0
+        self.n_steps = 0
+
+    def performing(self):
+        torch.manual_seed(self.seed)
+
+        while True:
+            self.load_model()
+            self.train_episode()
+            if self.n_episodes % 10 == 0:
+                rewards = self.evaluation(self.env)
+                rewards_mu = np.array([np.sum(np.array(l_i), 0) for l_i in rewards]).mean()
+                print("Episode %d, Average Reward %.2f"
+                      % (self.n_episodes, rewards_mu))
 
     def train_episode(self):
-        start_time = time.time()
+        done = False
+        state = self.env.reset()
+        self.env_state = state
 
-        # env reset
-        state = np.array(self.env.reset())
-
-        for step in range(1, self.step_num + 1):
+        while not done:
+            self.n_steps += 1
             action = self.choose_action(state)
-
-            # take action and get next state
             next_state, reward, done, _ = self.env.step(action)
-            next_state = np.array(next_state)
 
-            self.epi_reward.append(reward)
-
-            # clip rewards for numerical stability
-            clip_r = np.sign(reward)
+            # clip_r = np.sign(reward)
+            reward = 0
+            if done:
+                if self.n_steps > 190:
+                    reward = 1
+                else:
+                    reward = -1
 
             # push memory
-            self.q_trace.put((state, action, clip_r, next_state, done),
+            self.q_trace.put((state, action, reward, next_state, done),
                              block=True)
 
-            # check time interval
-            time_interval = round(time.time() - start_time, 2)
+            self.env_state = next_state
+            if done:
+                self.env_state = self.env.reset()
+                break
 
-            # calc mean return
-            mean_100_ep_return = round(np.mean([r for r in self.epi_reward]), 2)
-            self.result.append(mean_100_ep_return)
-            print('EPS: ', round(self.eps_greedy, 3),
-                  '| Mean ep 100 return: ', mean_100_ep_return,
-                  '| Used Time:', time_interval)
+        if done:
+            self.n_steps = 0
+            self.n_episodes += 1
+            self.episode_done = True
+        else:
+            self.episode_done = False
 
-            state = next_state
-
-        print("The training is done!")
-
-    def choose_action(self, x):
-        x = torch.FloatTensor(x).to(self.device).unsqueeze(0)
-
+    def choose_action(self, state):
         if np.random.uniform() >= self.eps_greedy:
-            action_value_dist = self.pred_net(x)
+            state = torch.FloatTensor(state).to(self.device).unsqueeze(0)
+            action_value_dist = self.pred_net(state)
             action_value = torch.sum(action_value_dist * self.value_range.view(1, 1, -1), dim=2)
             action = torch.argmax(action_value, dim=1).data.cpu().numpy().item()
         else:
             action = np.random.randint(0, self.n_act)
         return action
 
+    def evaluation(self, env_eval):
+        rewards = []
+        for i in range(2):
+            rewards_i = []
+
+            state = env_eval.reset()
+            action = self.action(state)
+            state, reward, done, _ = env_eval.step(action)
+            rewards_i.append(reward)
+
+            while not done:
+                action = self.action(state)
+                state, reward, done, _ = env_eval.step(action)
+                rewards_i.append(reward)
+            rewards.append(rewards_i)
+
+        return rewards
+
+    def action(self, state):
+        state = torch.FloatTensor([state]).to(self.device)
+        # [n_act, 51]
+        action_value_dist = self.pred_net(state)
+        action_value = torch.sum(action_value_dist * self.value_range.view(1, 1, -1), dim=2)
+        action = torch.argmax(action_value, dim=1).data.cpu().numpy().item()
+        return action
+
+    def load_model(self):
+        try:
+            self.pred_net.load_state_dict(self.learner.pred_net.state_dict())
+        except:
+            print('load error')
