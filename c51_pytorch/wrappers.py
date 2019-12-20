@@ -7,7 +7,7 @@ from gym import spaces
 import cv2
 from abc import ABC,abstractmethod
 from multiprocessing import Process, Pipe
-# from monitor import Monitor
+from monitor import Monitor
 
 class EpisodicLifeEnv(gym.Wrapper):
     def __init__(self, env=None):
@@ -371,7 +371,7 @@ def wrap_cover(env_name):
     def wrap_():
         """Apply a common set of wrappers for Atari games."""
         env = gym.make(env_name)
-        # env = Monitor(env, './')
+        env = Monitor(env, './')
         assert 'NoFrameskip' in env.spec.id
         env = EpisodicLifeEnv(env)
         env = NoopResetEnv(env, noop_max=30)

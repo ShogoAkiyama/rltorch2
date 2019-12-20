@@ -36,7 +36,7 @@ N_ATOM = 51
 
 '''Environment Settings'''
 # number of environments for C51
-N_ENVS = 4
+N_ENVS = 1
 # openai gym env name
 ENV_NAME = 'BreakoutNoFrameskip-v4'
 env = SubprocVecEnv([wrap_cover(ENV_NAME) for i in range(N_ENVS)])
