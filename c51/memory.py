@@ -55,11 +55,11 @@ class Memory:
             obses_tp1.append(np.array(obs_tp1, copy=False))
             dones.append(done)
 
-        obses_t = torch.FloatTensor(obses_t).to(self.device)
-        actions = torch.LongTensor(actions).to(self.device)
-        rewards = torch.FloatTensor(rewards).to(self.device)
-        obses_tp1 = torch.FloatTensor(obses_tp1).to(self.device)
-        dones = torch.FloatTensor(dones).to(self.device)
+        obses_t = np.array(obses_t)
+        actions = np.array(actions)
+        rewards = np.array(rewards)
+        obses_tp1 = np.array(obses_tp1)
+        dones = np.array(dones)
 
         # stack batch and put
         self.q_batch.put((obses_t, actions, rewards, obses_tp1, dones))

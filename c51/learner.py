@@ -36,7 +36,7 @@ class Learner:
                 self.update_target()
 
             states, actions, rewards, next_states, dones = self.q_batch.get(block=True)
-
+    
             states = torch.FloatTensor(states).to(self.device)
             actions = torch.LongTensor(actions).to(self.device)
             next_states = torch.FloatTensor(next_states).to(self.device)
@@ -65,15 +65,15 @@ class Learner:
             '''
             # we vectorized the computation of support and position
             # rewards + γ*(1-dones)*z_j
-            next_v_range = np.array(rewards).reshape(-1, 1) \
-                           + self.gamma * (1. - np.array(dones)).reshape(-1, 1) \
-                           * self.value_range.cpu().numpy().reshape(1, -1)
+            Tz = rewards.reshape(-1, 1) \
+                  + self.gamma * (1. - dones).reshape(-1, 1) \
+                  * self.value_range.cpu().numpy().reshape(1, -1)
 
             # clip for categorical distribution
-            next_v_range = np.clip(next_v_range, self.v_min, self.v_max)
+            Tz = np.clip(Tz, self.v_min, self.v_max)
 
             # calc relative position of possible value: b_j
-            bj = (next_v_range - self.v_min) / self.v_step
+            bj = (Tz - self.v_min) / self.v_step
 
             # get lower/upper bound of relative position
             m_l = np.floor(bj).astype(int)   # m_l
@@ -92,8 +92,7 @@ class Learner:
             target_q = torch.FloatTensor(target_q).to(self.device)
 
             # calc huber loss, dont reduce for importance weight
-            loss = - target_q * torch.log(curr_q + 1e-8)  # (m , N_ATOM)
-            loss = torch.sum(loss)
+            loss = - torch.sum(target_q * torch.log(curr_q + 1e-8))  # (m , N_ATOM)
 
             # backprop loss
             self.optimizer.zero_grad()
