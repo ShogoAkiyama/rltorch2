@@ -73,11 +73,11 @@ class Learner:
             next_v_range = np.clip(next_v_range, self.v_min, self.v_max)
 
             # calc relative position of possible value: b_j
-            next_v_pos = (next_v_range - self.v_min) / self.v_step
+            bj = (next_v_range - self.v_min) / self.v_step
 
             # get lower/upper bound of relative position
-            m_l = np.floor(next_v_pos).astype(int)   # m_l
-            m_u = np.ceil(next_v_pos).astype(int)    # m_u
+            m_l = np.floor(bj).astype(int)   # m_l
+            m_u = np.ceil(bj).astype(int)    # m_u
 
             # target distribution
             target_q = np.zeros((mb_size, self.n_atom))  # (m, N_ATOM)
@@ -86,8 +86,8 @@ class Learner:
             for i in range(mb_size):
                 for j in range(self.n_atom):
                     # calc prob mass of relative position weighted with distance
-                    target_q[i, m_l[i, j]] += (q_next * (m_u - next_v_pos))[i, j]
-                    target_q[i, m_u[i, j]] += (q_next * (next_v_pos - m_l))[i, j]
+                    target_q[i, m_l[i, j]] += (q_next * (m_u - bj))[i, j]
+                    target_q[i, m_u[i, j]] += (q_next * (bj - m_l))[i, j]
 
             target_q = torch.FloatTensor(target_q).to(self.device)
 

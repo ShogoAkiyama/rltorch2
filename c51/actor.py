@@ -57,7 +57,6 @@ class Actor:
             action = self.choose_action(state)
             next_state, reward, done, _ = self.env.step(action)
 
-            # clip_r = np.sign(reward)
             reward = 0
             if done:
                 if self.n_steps > 190:
