@@ -32,7 +32,7 @@ class Learner:
         while True:
             self.learn_step_counter += 1
             # target parameter update
-            if self.learn_step_counter % 1 == 0:
+            if self.learn_step_counter % 10 == 0:
                 self.update_target()
 
             states, actions, rewards, next_states, dones = self.q_batch.get(block=True)
@@ -56,7 +56,7 @@ class Learner:
             q_next_mean = torch.sum(q_next * self.value_range.view(1, 1, -1), dim=2)  # (m, N_ACTIONS)
             next_actions = q_next_mean.argmax(dim=1)  # (m)
             q_next = torch.stack([q_next[i].index_select(0, next_actions[i]) for i in range(mb_size)]).squeeze(1)
-            q_next = q_next.data.cpu().numpy()  # (m, N_ATOM)
+            q_next = q_next.cpu().numpy()  # (m, N_ATOM)
 
             # categorical projection
             '''
@@ -67,7 +67,7 @@ class Learner:
             # rewards + γ*(1-dones)*z_j
             next_v_range = np.array(rewards).reshape(-1, 1) \
                            + self.gamma * (1. - np.array(dones)).reshape(-1, 1) \
-                           * self.value_range.data.cpu().numpy().reshape(1, -1)
+                           * self.value_range.cpu().numpy().reshape(1, -1)
 
             # clip for categorical distribution
             next_v_range = np.clip(next_v_range, self.v_min, self.v_max)
@@ -102,4 +102,3 @@ class Learner:
 
     def update_target(self):
         self.pred_net.load_state_dict(self.target_net.state_dict())
-
