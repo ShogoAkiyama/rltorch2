@@ -21,9 +21,7 @@ class Learner:
         self.v_min = args.v_min
         self.v_max = args.v_max
 
-        self.dz = float(self.v_max - self.v_min) / (self.n_atom - 1)
-        # self.v_range = np.linspace(self.v_min, self.v_max, self.n_atom)
-        # self.value_range = torch.FloatTensor(self.v_range).to(self.device)  # (N_ATOM)
+        self.dz = (self.v_max - self.v_min) / (self.n_atom - 1)
         self.z = [self.v_min + i * self.dz for i in range(self.n_atom)]
         self.z_space = torch.FloatTensor(self.z).to(self.device)
 
@@ -43,7 +41,7 @@ class Learner:
             states = torch.FloatTensor(states).to(self.device)
             actions = torch.LongTensor(actions).to(self.device)
             next_states = torch.FloatTensor(next_states).to(self.device)
-            # dones = [int(i) for i in dones]
+            dones = [int(i) for i in dones]
 
             # action value distribution prediction
             # (m, N_ACTIONS, N_ATOM)

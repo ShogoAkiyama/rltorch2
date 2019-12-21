@@ -25,8 +25,8 @@ class Actor:
         self.v_max = args.v_max
         self.dz = float(self.v_max - self.v_min) / (self.n_atom - 1)
 
-        # self.z = [self.v_min + i * self.dz for i in range(self.n_atom)]
-        self.z = np.linspace(self.v_min, self.v_max, self.n_atom)
+        self.z = [self.v_min + i * self.dz for i in range(self.n_atom)]
+        # self.z = np.linspace(self.v_min, self.v_max, self.n_atom)
         self.value_range = torch.FloatTensor(self.z).to(self.device)  # (N_ATOM)
 
         self.step_num = args.step_num
@@ -58,11 +58,13 @@ class Actor:
             action = self.choose_action(state)
             next_state, reward, done, _ = self.env.step(action)
 
+            reward = 0
             if done:
-                reward = -1
-            else:
-                reward = 0
-
+                if self.n_steps > 195:
+                    reward = 1
+                else:
+                    reward = -1
+    
             # push memory
             self.q_trace.put((state, action, reward, next_state, done),
                              block=True)
@@ -109,13 +111,9 @@ class Actor:
 
     def action(self, state):
         state = torch.FloatTensor([state]).to(self.device)
-        # [n_act, 51]
-        Q = self.net(state).detach().cpu().numpy()
-        z_space = np.repeat(np.expand_dims(self.z, axis=0), self.n_act, axis=0)
-        # action_value = torch.sum(q * self.value_range.view(1, 1, -1), dim=2)
-        action_value = np.sum(Q[0] * z_space, axis=1)
-        action = np.argmax(action_value)
-        # action = torch.argmax(action_value, dim=1).data.cpu().numpy().item()
+        action_value_dist = self.net(state)
+        action_value = torch.sum(action_value_dist * self.value_range.view(1, 1, -1), dim=2)
+        action = torch.argmax(action_value, dim=1).data.cpu().numpy().item()
         return action
 
     def load_model(self):
