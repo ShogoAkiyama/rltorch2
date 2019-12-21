@@ -7,3 +7,7 @@ visualize_atari/
 nohup.out
 
 _vizdoom.ini
+
+c51_pytorch/data/model/pred_net.pkl
+c51_pytorch/data/model/target_net.pkl
+c51_pytorch/data/plots/result.pkl
