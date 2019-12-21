@@ -39,7 +39,7 @@ N_ATOM = 51
 # number of environments for C51
 N_ENVS = 1
 # openai gym env name
-ENV_NAME = 'BreakoutNoFrameskip-v4'
+ENV_NAME = 'PongNoFrameskip-v4'
 # env = SubprocVecEnv([wrap_cover(ENV_NAME) for i in range(N_ENVS)])
 env = make_pytorch_env(ENV_NAME)
 N_ACTIONS = env.action_space.n
@@ -278,7 +278,7 @@ else:
 print('Collecting experience...')
 
 # episode step for accumulate reward
-epinfobuf = deque(maxlen=100)
+epinfobuf = []
 # check learning time
 start_time = time.time()
 
@@ -289,12 +289,11 @@ for step in range(1, STEP_NUM//N_ENVS+1):
     a = dqn.choose_action(s, EPSILON)
 
     # take action and get next state
-    s_, r, done, infos = env.step(a)
+    s_, r, done, _ = env.step(a)
     # log arrange
     # for info in infos:
     #     maybeepinfo = info.get('episode')
     #     if maybeepinfo: epinfobuf.append(maybeepinfo)
-    print(r)
     epinfobuf.append(r)
     s_ = np.array(s_)
 
@@ -317,22 +316,24 @@ for step in range(1, STEP_NUM//N_ENVS+1):
         dqn.learn()
 
     # print log and save
-    if step % SAVE_FREQ == 0:
+    if done:
         # check time interval
         time_interval = round(time.time() - start_time, 2)
         # calc mean return
-        mean_100_ep_return = round(np.mean([r for r in epinfobuf]), 2)
+        mean_100_ep_return = round(np.sum([r for r in epinfobuf]), 2)
         result.append(mean_100_ep_return)
         # print log
         print('Used Step:',dqn.memory_counter,
               'EPS: ', round(EPSILON, 3),
               '| Mean ep 100 return: ', mean_100_ep_return,
               '| Used Time:',time_interval)
-        # save model
-        dqn.save_model()
-        pkl_file = open(RESULT_PATH, 'wb')
-        pickle.dump(np.array(result), pkl_file)
-        pkl_file.close()
+        # # save model
+        # dqn.save_model()
+        # pkl_file = open(RESULT_PATH, 'wb')
+        # pickle.dump(np.array(result), pkl_file)
+        # pkl_file.close()
+        s = np.array(env.reset())
+        epinfobuf = []
 
     s = s_
 

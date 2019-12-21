@@ -309,7 +309,7 @@ def wrap_deepmind_pytorch(env, episode_life=True, clip_rewards=True,
     return env
 
 
-def make_pytorch_env(env_id, episode_life=True, clip_rewards=True,
+def make_pytorch_env(env_id, episode_life=True, clip_rewards=False,
                      frame_stack=True, scale=True):
     env = make_atari(env_id)
     env = wrap_deepmind_pytorch(
