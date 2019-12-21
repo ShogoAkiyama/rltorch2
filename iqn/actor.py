@@ -109,7 +109,7 @@ class Actor:
     def action(self, state):
         state = torch.FloatTensor([state]).to(self.device).unsqueeze(0)
         # [n_act, 51]
-        action_value, tau = self.pred_net(state)  # (N_ENVS, N_ACTIONS, N_QUANT)
+        action_value, tau = self.net(state)  # (N_ENVS, N_ACTIONS, N_QUANT)
         action_value = action_value.mean(dim=2)
         action = torch.argmax(action_value, dim=1).data.cpu().numpy()[0]
         return action

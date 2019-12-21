@@ -9,7 +9,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Some settings of the experiment.')
     parser.add_argument('--env', type=str, default='CartPole-v0')
     parser.add_argument('--seed', type=int, default=1, help='random seed')
-    parser.add_argument('--n_actors', type=int, default=3)
+    parser.add_argument('--n_actors', type=int, default=1)
     parser.add_argument('--memory_capacity', type=int, default=100000)
     parser.add_argument('--atom', type=int, default=8)
     parser.add_argument('--lr', type=float, default=2.5e-4)
