@@ -17,7 +17,8 @@ import seaborn as sns
 # %matplotlib inline
 sns.set()
 
-from wrappers import wrap, wrap_cover, SubprocVecEnv
+# from wrappers import wrap, wrap_cover, SubprocVecEnv
+from wrappers import make_pytorch_env
 
 '''DQN settings'''
 # sequential images to define state
@@ -39,7 +40,8 @@ N_ATOM = 51
 N_ENVS = 1
 # openai gym env name
 ENV_NAME = 'BreakoutNoFrameskip-v4'
-env = SubprocVecEnv([wrap_cover(ENV_NAME) for i in range(N_ENVS)])
+# env = SubprocVecEnv([wrap_cover(ENV_NAME) for i in range(N_ENVS)])
+env = make_pytorch_env(ENV_NAME)
 N_ACTIONS = env.action_space.n
 N_STATES = env.observation_space.shape
 # prior knowledge of return distribution,
@@ -167,7 +169,7 @@ class DQN(object):
         self.target_net.load(TARGET_PATH)
 
     def choose_action(self, x, EPSILON):
-        x = torch.FloatTensor(x)
+        x = torch.FloatTensor(x).unsqueeze(0)
         if USE_GPU:
             x = x.cuda()
 
@@ -175,10 +177,10 @@ class DQN(object):
             # greedy case
             action_value_dist = self.pred_net(x)  # (N_ENVS, N_ACTIONS, N_ATOM)
             action_value = torch.sum(action_value_dist * self.value_range.view(1, 1, -1), dim=2)  # (N_ENVS, N_ACTIONS)
-            action = torch.argmax(action_value, dim=1).data.cpu().numpy()
+            action = torch.argmax(action_value, dim=1).data.cpu().numpy()[0]
         else:
             # random exploration case
-            action = np.random.randint(0, N_ACTIONS, (x.size(0)))
+            action = np.random.randint(0, N_ACTIONS)
         return action
 
     def store_transition(self, s, a, r, s_, done):
@@ -289,17 +291,17 @@ for step in range(1, STEP_NUM//N_ENVS+1):
     # take action and get next state
     s_, r, done, infos = env.step(a)
     # log arrange
-    for info in infos:
-        maybeepinfo = info.get('episode')
-        if maybeepinfo: epinfobuf.append(maybeepinfo)
+    # for info in infos:
+    #     maybeepinfo = info.get('episode')
+    #     if maybeepinfo: epinfobuf.append(maybeepinfo)
+    epinfobuf.append(r)
     s_ = np.array(s_)
 
     # clip rewards for numerical stability
     clip_r = np.sign(r)
 
     # store the transition
-    for i in range(N_ENVS):
-        dqn.store_transition(s[i], a[i], clip_r[i], s_[i], done[i])
+    dqn.store_transition(s, a, clip_r, s_, done)
 
     # annealing the epsilon(exploration strategy)
     if step <= int(1e+3):
@@ -318,7 +320,7 @@ for step in range(1, STEP_NUM//N_ENVS+1):
         # check time interval
         time_interval = round(time.time() - start_time, 2)
         # calc mean return
-        mean_100_ep_return = round(np.mean([epinfo['r'] for epinfo in epinfobuf]),2)
+        mean_100_ep_return = round(np.mean([r for r in epinfobuf]), 2)
         result.append(mean_100_ep_return)
         # print log
         print('Used Step:',dqn.memory_counter,
