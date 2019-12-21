@@ -11,6 +11,7 @@ class Learner:
         self.q_batch = q_batch
         self.learn_step_counter = 0
         self.gamma = args.gamma
+        self.batch_size = args.batch_size
 
         self.env = gym.make(args.env)
         self.n_act = self.env.action_space.n
@@ -20,13 +21,15 @@ class Learner:
         self.v_min = args.v_min
         self.v_max = args.v_max
 
-        self.v_step = ((self.v_max - self.v_min) / (self.n_atom - 1))
-        self.v_range = np.linspace(self.v_min, self.v_max, self.n_atom)
-        self.value_range = torch.FloatTensor(self.v_range).to(self.device)  # (N_ATOM)
+        self.dz = float(self.v_max - self.v_min) / (self.n_atom - 1)
+        # self.v_range = np.linspace(self.v_min, self.v_max, self.n_atom)
+        # self.value_range = torch.FloatTensor(self.v_range).to(self.device)  # (N_ATOM)
+        self.z = [self.v_min + i * self.dz for i in range(self.n_atom)]
+        self.z_space = torch.FloatTensor(self.z).to(self.device)
 
-        self.pred_net = ConvNet(self.n_state, self.n_act, self.n_atom).to(self.device)
+        self.net = ConvNet(self.n_state, self.n_act, self.n_atom).to(self.device)
         self.target_net = ConvNet(self.n_state, self.n_act, self.n_atom).to(self.device)
-        self.optimizer = optim.Adam(self.pred_net.parameters(), lr=args.lr)
+        self.optimizer = optim.Adam(self.net.parameters(), lr=args.lr)
 
     def learn(self):
         while True:
@@ -40,59 +43,57 @@ class Learner:
             states = torch.FloatTensor(states).to(self.device)
             actions = torch.LongTensor(actions).to(self.device)
             next_states = torch.FloatTensor(next_states).to(self.device)
+            # dones = [int(i) for i in dones]
 
             # action value distribution prediction
             # (m, N_ACTIONS, N_ATOM)
-            curr_q = self.pred_net(states)
-            mb_size = curr_q.size(0)
+            curr_q = self.net(states)
 
             # 実際に行動したQだけを取り出す
-            curr_q = torch.stack([curr_q[i].index_select(0, actions[i]) for i in range(mb_size)]).squeeze(1)
+            curr_q = torch.stack([curr_q[i].index_select(0, actions[i]) 
+                                    for i in range(self.batch_size)]).squeeze(1)
 
             # get next state value
-            q_next = self.target_net(next_states).detach()  # (m, N_ACTIONS, N_ATOM)
+            next_q = self.net(next_states).detach()  # (m, N_ACTIONS, N_ATOM)
+            next_q = torch.sum(next_q * self.z_space.view(1, 1, -1), dim=2)  # (m, N_ACTIONS)
+            next_action = next_q.argmax(dim=1)  # (m)
 
-            # next value mean
-            q_next_mean = torch.sum(q_next * self.value_range.view(1, 1, -1), dim=2)  # (m, N_ACTIONS)
-            next_actions = q_next_mean.argmax(dim=1)  # (m)
-            q_next = torch.stack([q_next[i].index_select(0, next_actions[i]) for i in range(mb_size)]).squeeze(1)
-            q_next = q_next.cpu().numpy()  # (m, N_ATOM)
+            # target_q
+            target_q = self.target_net(next_states).detach().cpu().numpy()
+            target_q = [target_q[i, action, :] for i, action in enumerate(next_action)]
+            target_q = np.array(target_q)  # (m, N_ATOM)
 
-            # categorical projection
-            '''
-            next_v_range : (z_j) i.e. values of possible return, shape : (m, N_ATOM)
-            next_v_pos : relative position when offset of value is V_MIN, shape : (m, N_ATOM)
-            '''
-            # we vectorized the computation of support and position
-            # rewards + γ*(1-dones)*z_j
-            Tz = rewards.reshape(-1, 1) \
-                  + self.gamma * (1. - dones).reshape(-1, 1) \
-                  * self.value_range.cpu().numpy().reshape(1, -1)
-
-            # clip for categorical distribution
-            Tz = np.clip(Tz, self.v_min, self.v_max)
-
-            # calc relative position of possible value: b_j
-            bj = (Tz - self.v_min) / self.v_step
-
-            # get lower/upper bound of relative position
-            m_l = np.floor(bj).astype(int)   # m_l
-            m_u = np.ceil(bj).astype(int)    # m_u
-
-            # target distribution
-            target_q = np.zeros((mb_size, self.n_atom))  # (m, N_ATOM)
+            m_prob = np.zeros((self.batch_size, self.n_atom))  # (m, N_ATOM)
 
             # we didn't vectorize the computation of target assignment.
-            for i in range(mb_size):
+            for i in range(self.batch_size):
                 for j in range(self.n_atom):
-                    # calc prob mass of relative position weighted with distance
-                    target_q[i, m_l[i, j]] += (q_next * (m_u - bj))[i, j]
-                    target_q[i, m_u[i, j]] += (q_next * (bj - m_l))[i, j]
+                    Tz = np.fmin(self.v_max,
+                            np.fmax(self.v_min,
+                                    rewards[i]
+                                    + (1 - dones[i]) * 0.99 * (self.v_min + j * self.dz)
+                                    )
+                            )
+  
+                    bj = (Tz - self.v_min) / self.dz
 
-            target_q = torch.FloatTensor(target_q).to(self.device)
+                    lj = np.floor(bj).astype(int)   # m_l
+                    uj = np.ceil(bj).astype(int)    # m_u
+
+                    # calc prob mass of relative position weighted with distance
+                    m_prob[i, lj] += (dones[i] + (1 - dones[i]) * target_q[i][j]) * (uj - bj)
+                    m_prob[i, uj] += (dones[i] + (1 - dones[i]) * target_q[i][j]) * (bj - lj)
+
+            m_prob = m_prob / m_prob.sum(axis=1, keepdims=1)
+
+            m_prob = torch.FloatTensor(m_prob).to(self.device)
+            # print(curr_q)
 
             # calc huber loss, dont reduce for importance weight
-            loss = - torch.sum(target_q * torch.log(curr_q + 1e-8))  # (m , N_ATOM)
+            loss = - torch.mean(torch.sum(m_prob * torch.log(curr_q + 1e-20), dim=1))  # (m , N_ATOM)
+            
+            if self.learn_step_counter % 100 == 0:
+                print('loss:', loss.item())
 
             # backprop loss
             self.optimizer.zero_grad()
@@ -100,4 +101,4 @@ class Learner:
             self.optimizer.step()
 
     def update_target(self):
-        self.pred_net.load_state_dict(self.target_net.state_dict())
+        self.target_net.load_state_dict(self.net.state_dict())

@@ -18,15 +18,16 @@ class Actor:
         self.n_state = self.env.observation_space.shape[0]
         self.n_atom = args.atom
 
-        self.pred_net = ConvNet(self.n_state, self.n_act, self.n_atom).to(self.device)
+        self.net = ConvNet(self.n_state, self.n_act, self.n_atom).to(self.device)
 
         # パラメータ
         self.v_min = args.v_min
         self.v_max = args.v_max
+        self.dz = float(self.v_max - self.v_min) / (self.n_atom - 1)
 
-        self.v_step = ((self.v_max - self.v_min) / (self.n_atom - 1))
-        self.v_range = np.linspace(self.v_min, self.v_max, self.n_atom)
-        self.value_range = torch.FloatTensor(self.v_range).to(self.device)  # (N_ATOM)
+        # self.z = [self.v_min + i * self.dz for i in range(self.n_atom)]
+        self.z = np.linspace(self.v_min, self.v_max, self.n_atom)
+        self.value_range = torch.FloatTensor(self.z).to(self.device)  # (N_ATOM)
 
         self.step_num = args.step_num
         self.eps_greedy = 0.4 ** (1 + actor_id * 7 / (args.n_actors - 1)) \
@@ -36,7 +37,7 @@ class Actor:
         self.n_steps = 0
 
     def performing(self):
-        torch.manual_seed(self.seed)
+        # torch.manual_seed(self.seed)
 
         while True:
             self.load_model()
@@ -57,12 +58,10 @@ class Actor:
             action = self.choose_action(state)
             next_state, reward, done, _ = self.env.step(action)
 
-            reward = 0
             if done:
-                if self.n_steps > 190:
-                    reward = 1
-                else:
-                    reward = -1
+                reward = -1
+            else:
+                reward = 0
 
             # push memory
             self.q_trace.put((state, action, reward, next_state, done),
@@ -83,7 +82,7 @@ class Actor:
     def choose_action(self, state):
         if np.random.uniform() >= self.eps_greedy:
             state = torch.FloatTensor(state).to(self.device).unsqueeze(0)
-            action_value_dist = self.pred_net(state)
+            action_value_dist = self.net(state)
             action_value = torch.sum(action_value_dist * self.value_range.view(1, 1, -1), dim=2)
             action = torch.argmax(action_value, dim=1).data.cpu().numpy().item()
         else:
@@ -92,7 +91,7 @@ class Actor:
 
     def evaluation(self, env_eval):
         rewards = []
-        for i in range(2):
+        for i in range(10):
             rewards_i = []
 
             state = env_eval.reset()
@@ -111,13 +110,16 @@ class Actor:
     def action(self, state):
         state = torch.FloatTensor([state]).to(self.device)
         # [n_act, 51]
-        action_value_dist = self.pred_net(state)
-        action_value = torch.sum(action_value_dist * self.value_range.view(1, 1, -1), dim=2)
-        action = torch.argmax(action_value, dim=1).data.cpu().numpy().item()
+        Q = self.net(state).detach().cpu().numpy()
+        z_space = np.repeat(np.expand_dims(self.z, axis=0), self.n_act, axis=0)
+        # action_value = torch.sum(q * self.value_range.view(1, 1, -1), dim=2)
+        action_value = np.sum(Q[0] * z_space, axis=1)
+        action = np.argmax(action_value)
+        # action = torch.argmax(action_value, dim=1).data.cpu().numpy().item()
         return action
 
     def load_model(self):
         try:
-            self.pred_net.load_state_dict(self.learner.pred_net.state_dict())
+            self.net.load_state_dict(self.learner.net.state_dict())
         except:
             print('load error')
