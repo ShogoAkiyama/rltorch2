@@ -20,14 +20,6 @@ class Actor:
 
         self.net = ConvNet(self.n_state, self.n_act, self.n_quant).to(self.device)
 
-        # パラメータ
-        self.v_min = args.v_min
-        self.v_max = args.v_max
-        self.dz = float(self.v_max - self.v_min) / (self.n_quant - 1)
-
-        self.z = np.linspace(self.v_min, self.v_max, self.n_quant)
-        self.value_range = torch.FloatTensor(self.z).to(self.device)  # (N_ATOM)
-
         self.step_num = args.step_num
         self.eps_greedy = 0.4 ** (1 + actor_id * 7 / (args.n_actors - 1)) \
             if args.n_actors > 1 else 0.4
@@ -108,7 +100,6 @@ class Actor:
 
     def action(self, state):
         state = torch.FloatTensor([state]).to(self.device).unsqueeze(0)
-        # [n_act, 51]
         action_value, tau = self.net(state)  # (N_ENVS, N_ACTIONS, N_QUANT)
         action_value = action_value.mean(dim=2)
         action = torch.argmax(action_value, dim=1).data.cpu().numpy()[0]

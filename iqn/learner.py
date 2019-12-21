@@ -19,15 +19,6 @@ class Learner:
         self.n_state = self.env.observation_space.shape[0]
         self.n_quant = args.quant
 
-        self.v_min = args.v_min
-        self.v_max = args.v_max
-
-        self.dz = float(self.v_max - self.v_min) / (self.n_quant - 1)
-        # self.v_range = np.linspace(self.v_min, self.v_max, self.n_atom)
-        # self.value_range = torch.FloatTensor(self.v_range).to(self.device)  # (N_ATOM)
-        self.z = [self.v_min + i * self.dz for i in range(self.n_quant)]
-        self.z_space = torch.FloatTensor(self.z).to(self.device)
-
         self.net = ConvNet(self.n_state, self.n_act, self.n_quant).to(self.device)
         self.target_net = ConvNet(self.n_state, self.n_act, self.n_quant).to(self.device)
         self.optimizer = optim.Adam(self.net.parameters(), lr=args.lr)
@@ -35,6 +26,7 @@ class Learner:
     def learn(self):
         while True:
             self.learn_step_counter += 1
+
             # target parameter update
             if self.learn_step_counter % 10 == 0:
                 self.update_target()
@@ -44,7 +36,7 @@ class Learner:
             states = torch.FloatTensor(states).to(self.device)
             actions = torch.LongTensor(actions).to(self.device)
             next_states = torch.FloatTensor(next_states).to(self.device)
-            # dones = [int(i) for i in dones]
+            dones = np.array([int(i) for i in dones])
 
             # action value distribution prediction
             # (m, N_ACTIONS, N_ATOM)
@@ -74,7 +66,6 @@ class Learner:
             loss = F.smooth_l1_loss(curr_q, target_q.detach(), reduction='none')
             # (m, N_QUANT, N_QUANT)
             loss = torch.mean(torch.sum(loss, dim=1))
-
 
             if self.learn_step_counter % 100 == 0:
                 print('loss:', loss.item())
