@@ -45,8 +45,8 @@ env = make_pytorch_env(ENV_NAME)
 N_ACTIONS = env.action_space.n
 N_STATES = env.observation_space.shape
 # prior knowledge of return distribution,
-V_MIN = -5.
-V_MAX = 10.
+V_MIN = -25.
+V_MAX = 25.
 V_RANGE = np.linspace(V_MIN, V_MAX, N_ATOM)
 V_STEP = ((V_MAX-V_MIN)/(N_ATOM-1))
 # Total simulation step
@@ -294,6 +294,7 @@ for step in range(1, STEP_NUM//N_ENVS+1):
     # for info in infos:
     #     maybeepinfo = info.get('episode')
     #     if maybeepinfo: epinfobuf.append(maybeepinfo)
+    print(r)
     epinfobuf.append(r)
     s_ = np.array(s_)
 
