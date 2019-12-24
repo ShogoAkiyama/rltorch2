@@ -12,15 +12,17 @@ class ConvNet(nn.Module):
         self.n_actions = n_actions
         self.n_quant = n_quant
 
-        self.phi = nn.Linear(1, n_state, bias=False)
+        self.phi = nn.Linear(1, 64)
         self.phi_bias = nn.Parameter(torch.zeros(n_state))
 
-        self.fc1 = nn.Linear(n_state, 64)
+        self.fc0 = nn.Linear(n_state, 64)
+        self.fc1 = nn.Linear(64, 64)
         self.fc2 = nn.Linear(64, 64)
         self.fc_q = nn.Linear(64, n_actions)
 
     def forward(self, x):
         mb_size = x.size(0)
+        x = F.relu(self.fc0(x))
 
         tau = torch.rand(self.n_quant, 1).to(self.device)
         quants = torch.arange(0, 64, 1.0).to(self.device)

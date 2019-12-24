@@ -10,13 +10,13 @@ if __name__ == '__main__':
     parser.add_argument('--env', type=str, default='CartPole-v0')
     parser.add_argument('--seed', type=int, default=1, help='random seed')
     parser.add_argument('--n_actors', type=int, default=3)
-    parser.add_argument('--memory_capacity', type=int, default=100000)
+    # parser.add_argument('--memory_capacity', type=int, default=100000)
     parser.add_argument('--quant', type=int, default=8)
-    parser.add_argument('--lr', type=float, default=2.5e-4)
-    parser.add_argument('--v_min', type=int, default=-5)
-    parser.add_argument('--v_max', type=int, default=5)
+    parser.add_argument('--lr', type=float, default=1.0e-4)
+    # parser.add_argument('--v_min', type=int, default=-5)
+    # parser.add_argument('--v_max', type=int, default=5)
     parser.add_argument('--step_num', type=int, default=int(1e8))
-    parser.add_argument('--learn_start', type=int, default=1)
+    # parser.add_argument('--learn_start', type=int, default=1)
     parser.add_argument('--batch_size', type=int, default=32)
     parser.add_argument('--gamma', type=float, default=0.99)
 
@@ -33,7 +33,7 @@ if __name__ == '__main__':
     processes = []
 
     # data communication
-    q_trace = mp.Queue(maxsize=300)
+    q_trace = mp.Queue(maxsize=1000)
     q_batch = mp.Queue(maxsize=3)
 
     # QManager
