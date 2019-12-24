@@ -23,12 +23,13 @@ class ConvNet(nn.Module):
         mb_size = x.size(0)
 
         tau = torch.rand(self.n_quant, 1).to(self.device)
-        quants = torch.arange(0, self.n_quant, 1.0).to(self.device)
-        cos_trans = torch.cos(quants * tau * math.pi).unsqueeze(2)  # (N_QUANT, N_QUANT, 1)
-        rand_feat = F.relu(self.phi(cos_trans).mean(dim=1) + self.phi_bias.unsqueeze(0)).unsqueeze(0)
+        quants = torch.arange(0, 64, 1.0).to(self.device)
+        pi_mtx = tau * quants
+        cos_trans = torch.cos(pi_mtx * math.pi).unsqueeze(2)  # (N_QUANT, N_QUANT, 1)
+        phi = F.relu(self.phi(cos_trans).mean(dim=1) + self.phi_bias.unsqueeze(0)).unsqueeze(0)
 
         x = x.view(mb_size, -1).unsqueeze(1)
-        x = x * rand_feat  # (m, N_QUANT, 4)
+        x = x * phi  # (m, N_QUANT, 4)
 
         h = F.relu(self.fc1(x))   # (m, N_QUANT, 64)
         h = F.relu(self.fc2(h))

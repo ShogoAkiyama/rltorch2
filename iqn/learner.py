@@ -45,10 +45,10 @@ class Learner:
             # 実際に行動したQだけを取り出す
             curr_q = torch.stack([curr_q[i].index_select(0, actions[i]) 
                                     for i in range(self.batch_size)]).squeeze(1)
-            curr_q = curr_q.unsqueeze(2)
+            # curr_q = curr_q.unsqueeze(2)
 
             # get next state value
-            next_q, next_q_tau = self.net(next_states)  # (m, N_ACTIONS, N_ATOM)
+            next_q, _ = self.net(next_states)  # (m, N_ACTIONS, N_ATOM)
             next_action = next_q.mean(dim=2).argmax(dim=1)  # (m)
 
             # target_q
@@ -57,13 +57,15 @@ class Learner:
             target_q = target_q.detach().cpu().numpy()
             target_q = np.array([target_q[i, action, :] for i, action in enumerate(next_action)])
             target_q = rewards.reshape(-1, 1) + self.gamma * target_q * (1 - dones.reshape(-1, 1))
-            target_q = torch.FloatTensor(target_q).to(self.device).unsqueeze(2)
+            target_q = torch.FloatTensor(target_q).to(self.device)
 
             # loss
-            u = target_q - curr_q  # (m, N_QUANT, N_QUANT)
-            tau = curr_q_tau.unsqueeze(0)  # (1, N_QUANT, 1)
+            # u = target_q - curr_q  # (m, N_QUANT, N_QUANT)
+            # tau = curr_q_tau.unsqueeze(0)  # (1, N_QUANT, 1)
+            # weight = torch.abs(tau - u.le(0.).float())  # (m, N_QUANT, N_QUANT)
 
             loss = F.smooth_l1_loss(curr_q, target_q.detach(), reduction='none')
+
             # (m, N_QUANT, N_QUANT)
             loss = torch.mean(torch.sum(loss, dim=1))
 
