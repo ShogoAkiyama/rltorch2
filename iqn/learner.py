@@ -28,7 +28,8 @@ class Learner:
             self.learn_step_counter += 1
 
             # target parameter update
-            if self.learn_step_counter % 10 == 0:
+            if self.learn_step_counter % 500 == 0:
+                print('update target')
                 self.update_target()
 
             states, actions, rewards, next_states, dones = self.q_batch.get(block=True)
@@ -40,34 +41,33 @@ class Learner:
 
             # action value distribution prediction
             # (m, N_ACTIONS, N_ATOM)
-            curr_q, curr_q_tau = self.net(states)
+            curr_q, _ = self.net(states)
+            # curr_q = curr_q.sum(dim=1)
 
             # 実際に行動したQだけを取り出す
-            curr_q = torch.stack([curr_q[i].index_select(0, actions[i]) 
-                                    for i in range(self.batch_size)]).squeeze(1)
-            # curr_q = curr_q.unsqueeze(2)
+            curr_q = torch.stack([curr_q[i].index_select(1, actions[i])
+                                    for i in range(self.batch_size)])
+            curr_q = curr_q.repeat(1, 1, self.n_quant)
 
             # get next state value
             next_q, _ = self.net(next_states)  # (m, N_ACTIONS, N_ATOM)
-            next_action = next_q.mean(dim=2).argmax(dim=1)  # (m)
+            next_action = next_q.sum(dim=1).argmax(dim=1)  # (m)
 
             # target_q
             # q_target = R + gamma * (1 - terminate) * q_next
+
+            # [batch, quant, n_act]
             target_q, _ = self.target_net(next_states)
             target_q = target_q.detach().cpu().numpy()
-            target_q = np.array([target_q[i, action, :] for i, action in enumerate(next_action)])
+            target_q = np.array([target_q[i, :, action] for i, action in enumerate(next_action)])
             target_q = rewards.reshape(-1, 1) + self.gamma * target_q * (1 - dones.reshape(-1, 1))
-            target_q = torch.FloatTensor(target_q).to(self.device)
-
-            # loss
-            # u = target_q - curr_q  # (m, N_QUANT, N_QUANT)
-            # tau = curr_q_tau.unsqueeze(0)  # (1, N_QUANT, 1)
-            # weight = torch.abs(tau - u.le(0.).float())  # (m, N_QUANT, N_QUANT)
+            target_q = torch.FloatTensor(target_q).to(self.device).unsqueeze(2)
+            target_q = target_q.repeat(1, 1, self.n_quant)
 
             loss = F.smooth_l1_loss(curr_q, target_q.detach(), reduction='none')
 
             # (m, N_QUANT, N_QUANT)
-            loss = torch.mean(torch.sum(loss, dim=1))
+            loss = torch.mean(torch.sum(torch.mean(loss, dim=2), dim=1))
 
             if self.learn_step_counter % 100 == 0:
                 print('loss:', loss.item())

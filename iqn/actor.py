@@ -49,10 +49,9 @@ class Actor:
             action = self.choose_action(state)
             next_state, reward, done, _ = self.env.step(action)
 
+            reward = 0
             if done:
                 reward = -1
-            else:
-                reward = 0
 
             # push memory
             self.q_trace.put((state, action, reward, next_state, done),
@@ -73,9 +72,9 @@ class Actor:
     def choose_action(self, state):
         if np.random.uniform() >= self.eps_greedy:
             state = torch.FloatTensor(state).to(self.device).unsqueeze(0)
-            action_value, tau = self.net(state)
-            action_value = action_value.mean(dim=2)
-            action = torch.argmax(action_value, dim=1).data.cpu().numpy()[0]
+            action_value, _ = self.net(state)
+            action_value = action_value[0].sum(dim=0)
+            action = torch.argmax(action_value).detach().cpu().item()
         else:
             action = np.random.randint(0, self.n_act)
         return action
@@ -99,10 +98,10 @@ class Actor:
         return rewards
 
     def action(self, state):
-        state = torch.FloatTensor([state]).to(self.device).unsqueeze(0)
-        action_value, tau = self.net(state)  # (N_ENVS, N_ACTIONS, N_QUANT)
-        action_value = action_value.mean(dim=2)
-        action = torch.argmax(action_value, dim=1).data.cpu().numpy()[0]
+        state = torch.FloatTensor(state).to(self.device).unsqueeze(0)
+        action_value, _ = self.net(state)
+        action_value = action_value[0].sum(dim=0)
+        action = torch.argmax(action_value).detach().cpu().item()
         return action
 
     def load_model(self):
