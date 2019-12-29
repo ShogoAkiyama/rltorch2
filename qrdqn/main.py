@@ -60,25 +60,27 @@ class QRDQN(nn.Module):
         self.num_actions = num_actions
         self.quantiles = quantiles
 
-        self.conv1 = nn.Conv2d(self.input_shape[0], 32, kernel_size=8, stride=4)
-        self.conv2 = nn.Conv2d(32, 64, kernel_size=4, stride=2)
-        self.conv3 = nn.Conv2d(64, 64, kernel_size=3, stride=1)
+        # self.conv1 = nn.Conv2d(self.input_shape[0], 32, kernel_size=8, stride=4)
+        # self.conv2 = nn.Conv2d(32, 64, kernel_size=4, stride=2)
+        # self.conv3 = nn.Conv2d(64, 64, kernel_size=3, stride=1)
+        self.fc0 = nn.Linear(self.input_shape[0], 32)
 
-        self.fc1 = nn.Linear(self.feature_size(), 512)
-        self.fc2 = nn.Linear(512, self.num_actions * self.quantiles)
+        self.fc1 = nn.Linear(32, 32)
+        self.fc2 = nn.Linear(32, self.num_actions * self.quantiles)
 
     def forward(self, x):
-        x = F.relu(self.conv1(x))
-        x = F.relu(self.conv2(x))
-        x = F.relu(self.conv3(x))
-        x = x.view(x.size(0), -1)
+        # x = F.relu(self.conv1(x))
+        # x = F.relu(self.conv2(x))
+        # x = F.relu(self.conv3(x))
+        # x = x.view(x.size(0), -1)
+        x = F.relu(self.fc0(x))
         x = F.relu(self.fc1(x))
         x = self.fc2(x)
 
         return x.view(-1, self.num_actions, self.quantiles)
 
-    def feature_size(self):
-        return self.conv3(self.conv2(self.conv1(torch.zeros(1, *self.input_shape)))).view(1, -1).size(1)
+    # def feature_size(self):
+    #     return self.conv3(self.conv2(self.conv1(torch.zeros(1, *self.input_shape)))).view(1, -1).size(1)
 
 
 class Model(DQN_Agent):
@@ -160,10 +162,11 @@ def plot(frame_idx, rewards, losses, sigma, elapsed_time):
 
 start = timer()
 
-env_id = "PongNoFrameskip-v4"
-env = make_atari(env_id)
-env = wrap_deepmind(env, frame_stack=False)
-env = wrap_pytorch(env)
+env_id = "CartPole-v0"
+# env = make_atari(env_id)
+# env = wrap_deepmind(env, frame_stack=False)
+# env = wrap_pytorch(env)
+env = gym.make(env_id)
 model = Model(env=env, config=config)
 
 episode_reward = 0
@@ -185,12 +188,13 @@ for frame_idx in range(1, config.MAX_FRAMES + 1):
         model.reset_hx()
         observation = env.reset()
         model.save_reward(episode_reward)
+        print('episode_reward: ', episode_reward)
         episode_reward = 0
 
-        if np.mean(model.rewards[-10:]) > 19:
-            plot(frame_idx, model.rewards, model.losses, model.sigma_parameter_mag,
-                 timedelta(seconds=int(timer() - start)))
-            break
+        # if np.mean(model.rewards[-10:]) > 19:
+        #     plot(frame_idx, model.rewards, model.losses, model.sigma_parameter_mag,
+        #          timedelta(seconds=int(timer() - start)))
+        #     break
 
 #     if frame_idx % 10000 == 0:
 #         plot(frame_idx, model.rewards, model.losses, model.sigma_parameter_mag, timedelta(seconds=int(timer()-start)))
