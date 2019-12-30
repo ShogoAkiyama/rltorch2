@@ -2,32 +2,41 @@ import torch
 import numpy as np
 from network import Network
 import torch.optim as optim
+import math
+import gym
 
 from utils.ReplayMemory import ExperienceReplayMemory, PrioritizedReplayMemory
 
 
 class QRDQN:
-    def __init__(self, static_policy=False, env=None, config=None):
-        self.num_quantiles = config.QUANTILES
+    def __init__(self, args=None):
+        self.num_quantiles = args.QUANTILES
         self.cumulative_density = torch.tensor((2 * np.arange(self.num_quantiles) + 1) / (2.0 * self.num_quantiles),
-                                               device=config.device, dtype=torch.float)
+                                               device=args.device, dtype=torch.float)
         self.quantile_weight = 1.0 / self.num_quantiles
+        self.max_frames = args.max_frames
 
         # DQN
-        self.device = config.device
+        self.device = args.device
 
-        self.gamma = config.GAMMA
-        self.lr = config.LR
-        self.target_net_update_freq = config.TARGET_NET_UPDATE_FREQ
-        self.experience_replay_size = config.EXP_REPLAY_SIZE
-        self.batch_size = config.BATCH_SIZE
-        self.learn_start = config.LEARN_START
-        self.update_freq = config.UPDATE_FREQ
+        self.env = gym.make(args.env_id)
+        self.env_eval = gym.make(args.env_id)
 
-        self.static_policy = static_policy
-        self.num_feats = env.observation_space.shape
-        self.num_actions = env.action_space.n
-        self.env = env
+        self.num_feats = self.env.observation_space.shape
+        self.num_actions = self.env.action_space.n
+
+        # epsilon
+        self.epsilon_start = args.epsilon_start
+        self.epsilon_final = args.epsilon_final
+        self.epsilon_decay = args.epsilon_decay
+
+        self.gamma = args.gamma
+        self.lr = args.learning_rate
+        self.target_net_update_freq = args.target_net_update_freq
+        self.experience_replay_size = args.exp_replay_size
+        self.batch_size = args.batch_size
+        self.learn_start = args.learn_start
+        self.update_freq = args.update_freq
 
         self.declare_networks()
 
@@ -43,17 +52,39 @@ class QRDQN:
 
         self.update_count = 0
 
-        # self.declare_memory()
         self.memory = ExperienceReplayMemory(self.experience_replay_size)
 
-        self.nsteps = config.N_STEPS
+        self.nsteps = args.n_steps
         self.nstep_buffer = []
 
         # base
         self.rewards = []
 
+    def train_episode(self):
+        episode_reward = 0
 
-        # super(QRDQN, self).__init__(static_policy, env, config)
+        state = self.env.reset()
+        for frame_idx in range(1, self.max_frames + 1):
+            epsilon = self.epsilon_by_frame(frame_idx)
+
+            action = self.get_action(state, epsilon)
+            prev_state = state
+            state, reward, done, _ = self.env.step(action)
+            state = None if done else state
+
+            self.update(prev_state, action, reward, state, frame_idx)
+            episode_reward += reward
+
+            if done:
+                self.finish_nstep()
+                state = self.env.reset()
+                self.rewards.append(reward)
+                print('episode_reward: ', episode_reward)
+                episode_reward = 0
+                if frame_idx % 10:
+                    rewards = self.evaluation(self.env_eval)
+                    rewards_mu = np.array([np.sum(np.array(l_i), 0) for l_i in rewards]).mean()
+                    print(" " * 20, "Eval Average Reward %.2f" % (rewards_mu))
 
     def declare_networks(self):
         self.model = Network(self.num_feats, self.num_actions, quantiles=self.num_quantiles)
@@ -93,18 +124,20 @@ class QRDQN:
     def get_action(self, s, eps):
         with torch.no_grad():
             if np.random.random() >= eps:
-                X = torch.tensor([s], device=self.device, dtype=torch.float)
-                a = (self.model(X) * self.quantile_weight).sum(dim=2).max(dim=1)[1]
-                return a.item()
+                action = self.action(s)
+                return action
             else:
-                return np.random.randint(0, self.num_actions)
+                action = np.random.randint(0, self.num_actions)
+                return action
+
+    def action(self, s):
+        X = torch.tensor([s], device=self.device, dtype=torch.float)
+        a = (self.model(X) * self.quantile_weight).sum(dim=2).max(dim=1)[1]
+        return a.item()
 
     def get_max_next_state_action(self, next_states):
         next_dist = self.target_model(next_states) * self.quantile_weight
         return next_dist.sum(dim=2).max(1)[1].view(next_states.size(0), 1, 1).expand(-1, -1, self.num_quantiles)
-
-    def save_reward(self, reward):
-        self.rewards.append(reward)
 
     def huber(self, x):
         cond = (x.abs() < 1.0).float().detach()
@@ -118,9 +151,6 @@ class QRDQN:
             self.memory.push((state, action, R, None))
 
     def update(self, s, a, r, s_, frame=0):
-        if self.static_policy:
-            return None
-
         self.append_to_replay(s, a, r, s_)
 
         if frame < self.learn_start or frame % self.update_freq != 0:
@@ -141,11 +171,9 @@ class QRDQN:
 
     def update_target_model(self):
         self.update_count += 1
-        self.update_count = self.update_count % self.target_net_update_freq
-        if self.update_count == 0:
+        if self.update_count % self.target_net_update_freq == 0:
             self.target_model.load_state_dict(self.model.state_dict())
 
-
     def append_to_replay(self, s, a, r, s_):
         self.nstep_buffer.append((s, a, r, s_))
 
@@ -200,9 +228,9 @@ class QRDQN:
 
         shape = (-1,) + self.num_feats
 
-        batch_state = torch.tensor(batch_state, device=self.device, dtype=torch.float).view(shape)
-        batch_action = torch.tensor(batch_action, device=self.device, dtype=torch.long).squeeze().view(-1, 1)
-        batch_reward = torch.tensor(batch_reward, device=self.device, dtype=torch.float).squeeze().view(-1, 1)
+        batch_state = torch.FloatTensor(batch_state).to(self.device).view(shape)
+        batch_action = torch.LongTensor(batch_action).to(self.device).squeeze().view(-1, 1)
+        batch_reward = torch.FloatTensor(batch_reward).to(self.device).squeeze().view(-1, 1)
 
         non_final_mask = torch.tensor(tuple(map(lambda s: s is not None, batch_next_state)), device=self.device,
                                       dtype=torch.bool)
@@ -215,3 +243,27 @@ class QRDQN:
             empty_next_state_values = True
 
         return batch_state, batch_action, batch_reward, non_final_next_states, non_final_mask, empty_next_state_values, indices, weights
+
+    def evaluation(self, env_eval):
+        rewards = []
+        for i in range(10):
+            rewards_i = []
+
+            state = env_eval.reset()
+            action = self.action(state)
+            state, reward, done, _ = env_eval.step(action)
+            rewards_i.append(reward)
+
+            while not done:
+                action = self.action(state)
+                state, reward, done, _ = env_eval.step(action)
+                rewards_i.append(reward)
+            rewards.append(rewards_i)
+
+        return rewards
+
+    def epsilon_by_frame(self, frame_idx):
+        res = self.epsilon_final + (self.epsilon_start - self.epsilon_final) \
+              * math.exp(-1. * frame_idx / self.epsilon_decay)
+
+        return res
