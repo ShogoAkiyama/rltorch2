@@ -54,7 +54,7 @@ class QRDQN:
 
         self.update_count = 0
 
-        self.memory = ExperienceReplayMemory(self.experience_replay_size)
+        self.memory = PrioritizedReplayMemory(self.experience_replay_size)
 
         self.nsteps = args.n_steps
         self.nstep_buffer = []

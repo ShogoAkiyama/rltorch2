@@ -3,7 +3,8 @@ import numpy as np
 from network import Network
 import torch.optim as optim
 import gym
-
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 class Learner:
     def __init__(self, args, q_batch):
@@ -120,10 +121,6 @@ class Learner:
             state = self.env_eval.reset()
             action = self.action(state)
             state, reward, done, _ = self.env_eval.step(action)
-            reward = 0
-            if done:
-                reward = -1
-
             rewards_i.append(reward)
 
             while not done:
@@ -134,8 +131,13 @@ class Learner:
 
         return rewards
 
-    def action(self, s):
-        X = torch.tensor([s], device=self.device, dtype=torch.float)
-        a = (self.model(X) * self.quantile_weight).sum(dim=2).max(dim=1)[1]
-        return a.item()
-
+    def action(self, state):
+        state = torch.FloatTensor([state]).to(self.device)
+        action = (self.model(state) * self.quantile_weight)
+        if self.update_count > 5000:
+            dist_action = action[0].cpu().detach().numpy()
+            sns.distplot(dist_action[0], bins=10, color='red')
+            sns.distplot(dist_action[1], bins=10, color='blue')
+            plt.show()
+        action = action.sum(dim=2).max(dim=1)[1]
+        return action.item()

@@ -56,8 +56,13 @@ class Actor:
             self.n_steps += 1
             action = self.get_action(self.env_state)
             next_state, reward, done, _ = self.env.step(action)
+            reward = 0
+            if done:
+                reward = -1
+                if self.n_steps > 190:
+                    reward = 1
 
-            # self.append_to_replay(self.env_state, action, reward, next_state, done)
+
             self.memory.put((self.env_state, action, reward, next_state, done), block=True)
             self.env_state = next_state
 
@@ -75,7 +80,7 @@ class Actor:
             return action
 
     def action(self, state):
-        state = torch.tensor([state], device=self.device, dtype=torch.float)
+        state = torch.FloatTensor([state]).to(self.device)
         action = (self.model(state) * self.quantile_weight).sum(dim=2).max(dim=1)[1]
         return action.item()
 
