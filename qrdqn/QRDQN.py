@@ -2,15 +2,17 @@ import torch
 import numpy as np
 from network import Network
 import torch.optim as optim
-import math
 import gym
 
 from utils.ReplayMemory import ExperienceReplayMemory, PrioritizedReplayMemory
 
+from timeit import default_timer as timer
+import math
+
 
 class QRDQN:
     def __init__(self, args=None):
-        self.num_quantiles = args.QUANTILES
+        self.num_quantiles = args.quantiles
         self.cumulative_density = torch.tensor((2 * np.arange(self.num_quantiles) + 1) / (2.0 * self.num_quantiles),
                                                device=args.device, dtype=torch.float)
         self.quantile_weight = 1.0 / self.num_quantiles
@@ -267,3 +269,48 @@ class QRDQN:
               * math.exp(-1. * frame_idx / self.epsilon_decay)
 
         return res
+
+
+class Config(object):
+    def __init__(self):
+        pass
+
+config = Config()
+config.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+config.update_freq = 1
+config.ACTION_SELECTION_COUNT_FREQUENCY = 1000
+
+# epsilon variables
+config.epsilon_start = 1.0
+config.epsilon_final = 0.01
+config.epsilon_decay = 60000
+config.epsilon_by_frame = lambda frame_idx: config.epsilon_final + (
+            config.epsilon_start - config.epsilon_final) * math.exp(-1. * frame_idx / config.epsilon_decay)
+
+# misc agent variables
+config.gamma = 0.99
+config.learning_rate = 2.5e-4
+
+# memory
+config.target_net_update_freq = 1000
+config.exp_replay_size = 100000
+config.batch_size = 32
+
+# Learning control variables
+config.learn_start = 100
+config.max_frames = 1000000
+
+# Nstep controls
+config.n_steps = 1
+
+# Quantile Regression Parameters
+config.quantiles = 51
+
+
+start = timer()
+
+config.env_id = "CartPole-v0"
+# env = gym.make(env_id)
+model = QRDQN(args=config)
+model.train_episode()

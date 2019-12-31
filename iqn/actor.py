@@ -41,12 +41,11 @@ class Actor:
 
     def train_episode(self):
         done = False
-        state = self.env.reset()
-        self.env_state = state
+        self.env_state = self.env.reset()
 
         while not done:
             self.n_steps += 1
-            action = self.choose_action(state)
+            action = self.choose_action(self.env_state)
             next_state, reward, done, _ = self.env.step(action)
 
             reward = 0
@@ -54,7 +53,7 @@ class Actor:
                 reward = -1
 
             # push memory
-            self.q_trace.put((state, action, reward, next_state, done),
+            self.q_trace.put((self.env_state, action, reward, next_state, done),
                              block=True)
 
             self.env_state = next_state

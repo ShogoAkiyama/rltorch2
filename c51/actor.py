@@ -55,7 +55,7 @@ class Actor:
 
         while not done:
             self.n_steps += 1
-            action = self.choose_action(state)
+            action = self.choose_action(self.env_state)
             next_state, reward, done, _ = self.env.step(action)
 
             reward = 0
