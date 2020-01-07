@@ -316,31 +316,51 @@ import cv2
 #     return env
 
 
+import os
 import gym
+import pandas as pd
 
 
 class StockEnv(gym.Wrapper):
     def __init__(self):
-        self.observation_space = 1   #None
-        self.action_space = 1   #None
+        self.observation_space = 3
+        self.action_space = 3   # [0:buy, 1:neutral, 2:sell]
 
         # dataを読む
-        self.data = None
-        self.idx = 0
+        df = pd.read_csv(os.path.join('data', '7203.csv'), index_col=0)
+        df.index = df['date']
+        df = df.drop(['date'], axis=1)
+        df = df.pct_change().dropna(how='all') * 100
+        self.stock_price = df['adj_close'].values
+        self.date = df.index.values
+        self.idx = None
 
     def reset(self):
-        pass
+        self.idx = self.observation_space
+        state, _, _, _ = self.step(1)
+        return state
 
     def step(self, action):
-        pass
+        state = self.stock_price[self.idx-self.observation_space:self.idx]
+        reward = self.stock_price[self.idx]
+        if action == 0:     # buy
+            reward *= 1
+        elif action == 1:
+            reward = 0
+        elif action == 2:   # sell
+            reward *= -1
+
+        done = False
+        if len(self.stock_price)-1 == self.idx:
+            done = True
+
+        info = None
+
+        self.idx += 1
+        return state, reward, done, info
 
 
 def make_pytorch_env():
-    # env = make_atari(env_id)
-    # env = wrap_deepmind_pytorch(
-    #     env, episode_life, clip_rewards, frame_stack, scale)
-    # env._max_episode_steps = env.spec.tags.get(
-    #     'wrapper_config.TimeLimit.max_episode_steps')
 
     env = StockEnv()
 

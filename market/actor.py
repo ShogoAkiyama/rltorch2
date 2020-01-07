@@ -57,13 +57,12 @@ class Actor:
             self.n_steps += 1
             action = self.get_action(self.env_state)
             next_state, reward, done, _ = self.env.step(action)
-            reward = 0
-            if done:
-                reward = -1
-                if self.n_steps > 190:
-                    reward = 1
 
-            self.memory.put((self.env_state, action, reward, next_state, done), block=True)
+            if not done:
+                self.memory.put((self.env_state, action, reward, next_state, done), block=True)
+            else:
+                pass
+
             self.env_state = next_state
 
             if done:
