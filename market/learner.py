@@ -2,7 +2,7 @@ import torch
 import numpy as np
 from network import Network
 import torch.optim as optim
-import gym
+import os
 import matplotlib.pyplot as plt
 import seaborn as sns
 from env import make_pytorch_env
@@ -41,16 +41,19 @@ class Learner:
 
         self.update_count = 0
 
+        self.save_model_freq = 1000
+        self.model_path = os.path.join('.', 'model')
+
     def learn(self):
         while True:
             self.update_count += 1
             if self.update_count % self.target_net_update_freq == 0:
                 self.update_target_model()
 
-            if self.update_count % 10 == 0:
+            if self.update_count % 100 == 0:
                 rewards = self.evaluation()
                 rewards_mu = np.array([np.sum(np.array(l_i), 0) for l_i in rewards]).mean()
-                print('Eval Reward %.2f' % (rewards_mu))
+                print('Step %d Eval Reward %.2f' % (self.update_count, rewards_mu))
 
             states, actions, rewards, next_states, dones = self.q_batch.get(block=True)
 
@@ -85,6 +88,9 @@ class Learner:
             for param in self.model.parameters():
                 param.grad.data.clamp_(-1, 1)
             self.optimizer.step()
+
+            if self.update_count % self.save_model_freq == 0:
+                self.save_model()
 
     def huber(self, x):
         cond = (x.abs() < 1.0).float().detach()
@@ -135,10 +141,14 @@ class Learner:
     def action(self, state):
         state = torch.FloatTensor([state]).to(self.device)
         action = (self.model(state) * self.quantile_weight)
-        if self.update_count > 5000:
+        if self.update_count > 1000:
             dist_action = action[0].cpu().detach().numpy()
             sns.distplot(dist_action[0], bins=10, color='red')
-            sns.distplot(dist_action[1], bins=10, color='blue')
+            sns.distplot(dist_action[1], bins=10, color='green')
+            # sns.distplot(dist_action[2], bins=10, color='blue')
             plt.show()
         action = action.sum(dim=2).max(dim=1)[1]
         return action.item()
+
+    def save_model(self):
+        torch.save(self.model.state_dict(), os.path.join(self.model_path, str(self.update_count)))

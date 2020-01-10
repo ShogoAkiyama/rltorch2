@@ -324,7 +324,7 @@ import pandas as pd
 class StockEnv(gym.Wrapper):
     def __init__(self):
         self.observation_space = 3
-        self.action_space = 3   # [0:buy, 1:neutral, 2:sell]
+        self.action_space = 2   # [0:buy, 1:neutral, 2:sell]
 
         # dataを読む
         df = pd.read_csv(os.path.join('data', '7203.csv'), index_col=0)
@@ -347,8 +347,8 @@ class StockEnv(gym.Wrapper):
             reward *= 1
         elif action == 1:
             reward = 0
-        elif action == 2:   # sell
-            reward *= -1
+        # elif action == 2:   # sell
+        #     reward *= -1
 
         done = False
         if len(self.stock_price)-1 == self.idx:

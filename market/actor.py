@@ -28,16 +28,7 @@ class Actor:
         self.eps_greedy = 0.4 ** (1 + actor_id * 7 / (args.n_actors - 1)) \
             if args.n_actors > 1 else 0.4
 
-        self.gamma = args.gamma
-        self.batch_size = args.batch_size
-
         self.model = Network(self.num_feats, self.num_actions, quantiles=self.num_quantiles).to(self.device)
-
-        self.multi_steps = args.multi_steps
-        self.nstep_buffer = []
-
-        # base
-        self.rewards = []
 
         self.env_state = None
         self.n_episodes = 0
