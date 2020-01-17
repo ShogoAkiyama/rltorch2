@@ -8,6 +8,28 @@ import torch.nn.functional as F
 from utils.transformer import Embedder, PositionalEncoder, ClassificationHead, TransformerBlock 
 
 
+## TransformerClassification
+class TransformerClassification(nn.Module):
+    def __init__(self, text_embedding_vectors, d_model=300, max_seq_len=256,
+                           output_dim=2):
+        super().__init__()
+        
+        # モデルの構築
+        self.net1 = Embedder(text_embedding_vectors)
+        self.net2 = PositionalEncoder(d_model, max_seq_len)
+        self.net3_1 = TransformerBlock(d_model)
+        self.net3_2 = TransformerBlock(d_model)
+        self.net4 = ClassificationHead(d_model, output_dim)
+        
+    def forward(self, x, mask):
+        x1 = self.net1(x)
+        x2 = self.net2(x1)
+        x3_1, normalized_weights_1 = self.net3_1(x2, mask)
+        x3_2, normalized_weights_2 = self.net3_2(x3_1, mask)
+        x4 = self.net4(x3_2)
+        return x4, normalized_weights_1, normalized_weights_2
+
+
 class CNN(nn.Module):
     def __init__(self, vocab_size, embedding_dim, n_filters, filter_sizes, output_dim,
                  dropout, pad_idx):
@@ -53,26 +75,89 @@ class CNN(nn.Module):
 
 
 
-## TransformerClassification
-class TransformerClassification(nn.Module):
-    def __init__(self, text_embedding_vectors, d_model=300, max_seq_len=256,
-                           output_dim=2):
+class CNN2(nn.Module):
+    def __init__(self, text_embedding_vectors, embedding_dim, n_filters, filter_sizes, output_dim,
+                 dropout, pad_idx):
         super().__init__()
-        
-        # モデルの構築
-        self.net1 = Embedder(text_embedding_vectors)
-        self.net2 = PositionalEncoder(d_model, max_seq_len)
-        self.net3_1 = TransformerBlock(d_model)
-        self.net3_2 = TransformerBlock(d_model)
-        self.net4 = ClassificationHead(d_model, output_dim)
-        
-    def forward(self, x, mask):
-        x1 = self.net1(x)
-        x2 = self.net2(x1)
-        x3_1, normalized_weights_1 = self.net3_1(x2, mask)
-        x3_2, normalized_weights_2 = self.net3_2(x3_1, mask)
-        x4 = self.net4(x3_2)
-        return x4, normalized_weights_1, normalized_weights_2
+
+        # self.embedding = nn.Embedding(vocab_size, embedding_dim, padding_idx=pad_idx)
+        self.embedding = nn.Embedding.from_pretrained(
+            embeddings=text_embedding_vectors, freeze=True)
+
+
+        self.convs = nn.ModuleList([
+            nn.Conv2d(in_channels=1,
+                      out_channels=n_filters,
+                      kernel_size=(fs, embedding_dim))
+            for fs in filter_sizes
+        ])
+
+        self.fc = nn.Linear(len(filter_sizes) * n_filters, output_dim)
+
+        self.dropout = nn.Dropout(dropout)
+
+    def forward(self, text):
+        # text = [batch size, sent len]
+
+        embedded = self.embedding(text)
+
+        # embedded = [batch size, sent len, emb dim]
+
+        embedded = embedded.unsqueeze(1)
+
+        # embedded = [batch size, 1, sent len, emb dim]
+
+        conved = [F.relu(conv(embedded)).squeeze(3) for conv in self.convs]
+
+        # conved_n = [batch size, n_filters, sent len - filter_sizes[n] + 1]
+
+        pooled = [F.max_pool1d(conv, conv.shape[2]).squeeze(2) for conv in conved]
+
+        # pooled_n = [batch size, n_filters]
+
+        cat = self.dropout(torch.cat(pooled, dim=1))
+
+        # cat = [batch size, n_filters * len(filter_sizes)]
+
+        return self.fc(cat)
+
+
+class QRDQN(nn.Module):
+    def __init__(self, text_embedding_vector, vocab_size, embedding_dim, 
+                    n_filters, filter_sizes, pad_idx,
+                    d_model=300, num_actions=2, quantiles=51):
+        super().__init__()
+
+        self.num_actions = num_actions
+        self.quantiles = quantiles
+
+        self.embedding = nn.Embedding(vocab_size, embedding_dim, padding_idx=pad_idx)
+
+        self.convs = nn.ModuleList([
+            nn.Conv2d(in_channels=1,
+                      out_channels=n_filters,
+                      kernel_size=(fs, embedding_dim))
+            for fs in filter_sizes
+        ])
+
+        self.fc = nn.Linear(len(filter_sizes) * n_filters, 
+                            self.num_actions * self.quantiles)
+
+    def forward(self, text):
+        embedded = self.embedding(text)    # [batch size, sent len, emb dim]
+
+        embedded = embedded.unsqueeze(1)   # [batch size, 1, sent len, emb dim]
+
+        h = [F.relu(conv(embedded)).squeeze(3) for conv in self.convs]   # [batch size, n_filters, sent len - filter_sizes[n] + 1]
+
+        h = [F.max_pool1d(conv, conv.shape[2]).squeeze(2) for conv in h]
+
+        h = torch.cat(h, dim=1)
+
+        h = self.fc(h)
+
+        return h.view(-1, self.num_actions, self.quantiles)
+
 
 # パラメータの初期化を定義
 def weights_init(m):
