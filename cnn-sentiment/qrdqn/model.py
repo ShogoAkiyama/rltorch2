@@ -2,13 +2,15 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-class DQN(nn.Module):
-    def __init__(self, text_embedding_vector, vocab_size, embedding_dim,
+
+class QRDQN(nn.Module):
+    def __init__(self, vocab_size, embedding_dim,
                     n_filters, filter_sizes, pad_idx,
                     num_actions=2, quantiles=51):
         super().__init__()
 
         self.num_actions = num_actions
+        self.quantiles = quantiles
 
         self.embedding = nn.Embedding(vocab_size, embedding_dim, padding_idx=pad_idx)
 
@@ -19,7 +21,8 @@ class DQN(nn.Module):
             for fs in filter_sizes
         ])
 
-        self.fc = nn.Linear(len(filter_sizes) * n_filters, self.num_actions)
+        self.fc = nn.Linear(len(filter_sizes) * n_filters,
+                            self.num_actions * self.quantiles)
 
     def forward(self, text):
         embedded = self.embedding(text)    # [batch size, sent len, emb dim]
@@ -34,4 +37,5 @@ class DQN(nn.Module):
 
         h = self.fc(h)
 
-        return h
+        return h.view(-1, self.num_actions, self.quantiles)
+

@@ -36,6 +36,8 @@ class Trainer(Abstract):
         self.net.to(self.device)
         self.target_net.to(self.device)
 
+        self.target_net.load_state_dict(self.net.state_dict())
+
         self.optim_lr = args.lr
         self.optimizer = optim.Adam(self.net.parameters(), lr=self.optim_lr)
 
@@ -64,6 +66,7 @@ class Trainer(Abstract):
                     self.interval()
 
                 self.agent_reset()
+                self.target_net.load_state_dict(self.net.state_dict())
 
     def train(self):
         self.total_loss = 0

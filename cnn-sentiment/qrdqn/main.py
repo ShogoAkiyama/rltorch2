@@ -26,6 +26,9 @@ if __name__ == '__main__':
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     parser.add_argument('--device', type=str, default=device)
 
+    # QR-DQN
+    parser.add_argument('--num_quantile', type=int, default=51)
+
     args = parser.parse_args()
 
     torch.backends.cudnn.benchmark = True
