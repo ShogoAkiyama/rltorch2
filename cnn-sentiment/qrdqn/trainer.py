@@ -1,9 +1,13 @@
+import os
 import numpy as np
+from glob import glob
 
 import torch.optim as optim
 import torch
 
 from model import QRDQN
+
+LOG_DIR = os.path.join('.', 'logs')
 
 
 class Trainer:
@@ -12,6 +16,9 @@ class Trainer:
         self.train_dl = train_dl
 
         self.target_update_freq = args.target_update_freq
+        self.evaluation_freq = args.evaluation_freq
+        self.network_save_freq = args.network_save_freq
+
         self.device = args.device
         self.gamma = args.gamma
 
@@ -45,8 +52,11 @@ class Trainer:
             if self.epochs % self.target_update_freq == 0:
                 self.target_model.load_state_dict(self.model.state_dict())
 
-            if self.epochs % 10 == 0:
+            if self.epochs % self.evaluation_freq == 0:
                 self.evaluation()
+
+            if self.epochs % self.network_save_freq == 0:
+                self.save_model()
 
             self.log()
 
@@ -93,19 +103,25 @@ class Trainer:
 
     def evaluation(self):
         epi_rewards = 0
+        dist_hist = []
+        rewards_hist = []
+
         for batch in self.train_dl:
             states = batch.Text1[0].to(self.device)
             rewards = batch.Label.to(self.device)
 
             with torch.no_grad():
-                # actions = torch.argmax(self.model(states), 1).detach().cpu().numpy()
                 dist = self.model(states) * self.quantile_weight
+                dist_hist.append(dist.cpu().detach().numpy())
+                rewards_hist.append(rewards.cpu().detach().numpy())
                 actions = dist.sum(dim=2).max(1)[1]
 
             epi_rewards += (actions * rewards).detach().cpu().numpy().sum()
 
         print(' '*20,
               'train_reward: ', epi_rewards)
+        
+        return dist_hist, rewards_hist
 
     def huber(self, x):
         cond = (x.abs() < 1.0).float().detach()
@@ -114,3 +130,19 @@ class Trainer:
     def log(self):
         print('epoch: ', self.epochs,
               ' loss: {:.3f}'.format(self.epoch_loss))
+
+    def save_model(self):
+        torch.save(self.model.state_dict(), os.path.join(LOG_DIR, str(self.epochs))+'.pt')
+
+    def load_model(self):
+        model_path = sorted(glob(os.path.join(LOG_DIR, '*')))[-1]
+        self.model.load_state_dict(torch.load(model_path))
+
+    def test(self):
+        self.load_model()
+
+        # evaluate
+        dist_hist, rewards_hist = self.evaluation()
+
+        return dist_hist, rewards_hist
+    

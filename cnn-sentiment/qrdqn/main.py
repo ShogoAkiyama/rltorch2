@@ -14,6 +14,8 @@ if __name__ == '__main__':
     parser.add_argument('--batch_size', type=int, default=32)
     parser.add_argument('--n_epochs', type=int, default=100)
     parser.add_argument('--target_update_freq', type=int, default=100)
+    parser.add_argument('--evaluation_freq', type=int, default=10)
+    parser.add_argument('--network_save_freq', type=int, default=10)
 
     parser.add_argument('--min_freq', type=int, default=10)
     parser.add_argument('--embedding_dim', type=int, default=300)
@@ -22,6 +24,8 @@ if __name__ == '__main__':
     parser.add_argument('--pad_idx', type=list, default=1)
     parser.add_argument('--gamma', type=float, default=0.97)
     parser.add_argument('--learning_rate', type=float, default=2.5e-4)
+
+    parser.add_argument('--test', action='store_true')
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     parser.add_argument('--device', type=str, default=device)
@@ -53,5 +57,9 @@ if __name__ == '__main__':
         train_ds, batch_size=args.batch_size, train=True)
 
     trainer = Trainer(args, TEXT, train_dl)
-    trainer.run()
+
+    if args.test:
+        trainer.test()
+    else:
+        trainer.run()
 
