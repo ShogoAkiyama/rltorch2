@@ -21,6 +21,7 @@ class Trainer:
 
         self.device = args.device
         self.gamma = args.gamma
+        self.num_actions = args.num_actions
 
         # quantile
         self.num_quantile = args.num_quantile
@@ -34,9 +35,9 @@ class Trainer:
 
         vocab_size = len(TEXT.vocab.freqs)
         self.model = QRDQN(vocab_size, args.embedding_dim, args.n_filters,
-                           args.filter_sizes, args.pad_idx).to(args.device)
+                           args.filter_sizes, args.pad_idx, args.num_actions).to(args.device)
         self.target_model = QRDQN(vocab_size, args.embedding_dim, args.n_filters,
-                                args.filter_sizes, args.pad_idx).to(args.device)
+                                args.filter_sizes, args.pad_idx, args.num_actions).to(args.device)
 
         self.target_model.load_state_dict(self.model.state_dict())
 
@@ -53,7 +54,7 @@ class Trainer:
                 self.target_model.load_state_dict(self.model.state_dict())
 
             if self.epochs % self.evaluation_freq == 0:
-                self.evaluation()
+                self.evaluation(self.train_dl)
 
             if self.epochs % self.network_save_freq == 0:
                 self.save_model()
@@ -61,9 +62,7 @@ class Trainer:
             self.log()
 
     def train_episode(self):
-
         for batch in self.train_dl:
-            # curr_q
             states = batch.Text1[0].to(self.device)
             next_states = batch.Text2[0].to(self.device)
             rewards = batch.Label.to(self.device)
@@ -80,15 +79,21 @@ class Trainer:
                 -1, -1, self.num_quantile)
 
             next_q = self.target_model(next_states).gather(1, next_action)
-            next_q = next_q.expand(-1, 2, -1).reshape(-1, self.num_quantile)
-            rewards = torch.cat((torch.zeros(len(rewards), 1).to(self.device),
-                                 rewards.view(-1, 1)), 1).view(-1, 1)
+            next_q = next_q.expand(-1, self.num_actions, -1).reshape(-1, self.num_quantile)
+
+            if self.num_actions >= 2:
+                rewards = torch.cat((torch.zeros(len(rewards), 1).to(self.device),
+                                     rewards.view(-1, 1)), 1).view(-1, 1)
+            else:
+                rewards = rewards.view(-1 ,1)
 
             target_q = rewards + (self.gamma * next_q)
 
         diff = target_q.t().unsqueeze(-1) - curr_q.unsqueeze(0)
+
         loss = self.huber(diff) * torch.abs(
             self.cumulative_density.view(1, -1) - (diff < 0).to(torch.float))
+
         loss = loss.transpose(0, 1)
         loss = loss.mean(1).sum(-1).mean()
 
@@ -101,12 +106,12 @@ class Trainer:
 
         self.epoch_loss += loss.item()
 
-    def evaluation(self):
+    def evaluation(self, dl):
         epi_rewards = 0
         dist_hist = []
         rewards_hist = []
 
-        for batch in self.train_dl:
+        for batch in dl:
             states = batch.Text1[0].to(self.device)
             rewards = batch.Label.to(self.device)
 
@@ -114,7 +119,14 @@ class Trainer:
                 dist = self.model(states) * self.quantile_weight
                 dist_hist.append(dist.cpu().detach().numpy())
                 rewards_hist.append(rewards.cpu().detach().numpy())
-                actions = dist.sum(dim=2).max(1)[1]
+                if self.num_actions >=2:
+                    actions = dist.sum(dim=2).max(1)[1]
+                else:
+                    _sum = dist.sum(dim=2)
+                    actions = torch.where(
+                                _sum > 0, 
+                                torch.LongTensor([1]).to(self.device),
+                                torch.LongTensor([0]).to(self.device))
 
             epi_rewards += (actions * rewards).detach().cpu().numpy().sum()
 
@@ -137,12 +149,4 @@ class Trainer:
     def load_model(self):
         model_path = sorted(glob(os.path.join(LOG_DIR, '*')))[-1]
         self.model.load_state_dict(torch.load(model_path))
-
-    def test(self):
-        self.load_model()
-
-        # evaluate
-        dist_hist, rewards_hist = self.evaluation()
-
-        return dist_hist, rewards_hist
     

@@ -1,5 +1,7 @@
 import os
 import argparse
+import shutil
+
 import torchtext
 import torch
 
@@ -10,12 +12,13 @@ NEWS_PATH = os.path.join('..', 'data', 'news')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--max_length', type=int, default=256)
+    parser.add_argument('--max_length', type=int, default=1000)
     parser.add_argument('--batch_size', type=int, default=32)
     parser.add_argument('--n_epochs', type=int, default=100)
     parser.add_argument('--target_update_freq', type=int, default=100)
     parser.add_argument('--evaluation_freq', type=int, default=10)
-    parser.add_argument('--network_save_freq', type=int, default=10)
+    parser.add_argument('--network_save_freq', type=int, default=100)
+    parser.add_argument('--num_actions', type=int, default=1)
 
     parser.add_argument('--min_freq', type=int, default=10)
     parser.add_argument('--embedding_dim', type=int, default=300)
@@ -23,7 +26,7 @@ if __name__ == '__main__':
     parser.add_argument('--filter_sizes', type=list, default=[3, 4, 5])
     parser.add_argument('--pad_idx', type=list, default=1)
     parser.add_argument('--gamma', type=float, default=0.97)
-    parser.add_argument('--learning_rate', type=float, default=2.5e-4)
+    parser.add_argument('--learning_rate', type=float, default=2.5e-5)
 
     parser.add_argument('--test', action='store_true')
 
@@ -36,6 +39,11 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     torch.backends.cudnn.benchmark = True
+
+    # ログファイルを入れる
+    shutil.rmtree('./logs')
+    os.mkdir('./logs')
+    
 
     # 読み込んだ内容に対して行う処理を定義
     TEXT = torchtext.data.Field(sequential=True, tokenize=tokenizer_with_preprocessing,
