@@ -12,7 +12,13 @@ class Learner:
         self.num_quantiles = args.quantiles
         self.device = args.device
 
-        self.cumulative_density = torch.FloatTensor((2 * np.arange(self.num_quantiles) + 1) / (2.0 * self.num_quantiles)).to(self.device)
+        # self.cumulative_density = torch.FloatTensor(
+        #     (2 * np.arange(self.num_quantiles) + 1) /
+        #      (2.0 * self.num_quantiles)).to(self.device)
+
+        self.cumulative_density = torch.FloatTensor(
+            0.1 * np.arange(self.num_quantiles)).to(self.device)
+
         self.quantile_weight = 1.0 / self.num_quantiles
         # self.max_frames = args.max_frames
 
