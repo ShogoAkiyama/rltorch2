@@ -10,11 +10,11 @@ if __name__ == '__main__':
     parser.add_argument('--env', type=str, default='CartPole-v0')
     parser.add_argument('--seed', type=int, default=1, help='random seed')
     parser.add_argument('--n_actors', type=int, default=3)
-    parser.add_argument('--quant', type=int, default=8)
-    parser.add_argument('--lr', type=float, default=1.0e-4)
-    parser.add_argument('--step_num', type=int, default=int(1e8))
+    parser.add_argument('--quant', type=int, default=51)
+    parser.add_argument('--lr', type=float, default=2.5e-4)
     parser.add_argument('--batch_size', type=int, default=32)
     parser.add_argument('--gamma', type=float, default=0.99)
+    parser.add_argument('--target_net_update_freq', type=int, default=500)
 
     args = parser.parse_args()
 

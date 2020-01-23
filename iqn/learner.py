@@ -10,14 +10,17 @@ class Learner:
     def __init__(self, args, q_batch):
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.q_batch = q_batch
-        self.learn_step_counter = 0
+        self.update_count = 0
         self.gamma = args.gamma
         self.batch_size = args.batch_size
+        
 
-        self.env = gym.make(args.env)
-        self.n_act = self.env.action_space.n
-        self.n_state = self.env.observation_space.shape[0]
+        self.env_eval = gym.make(args.env)
+        self.n_act = self.env_eval.action_space.n
+        self.n_state = self.env_eval.observation_space.shape[0]
         self.n_quant = args.quant
+        
+        self.target_net_update_freq = args.target_net_update_freq
 
         self.net = ConvNet(self.n_state, self.n_act, self.n_quant).to(self.device)
         self.target_net = ConvNet(self.n_state, self.n_act, self.n_quant).to(self.device)
@@ -25,11 +28,16 @@ class Learner:
 
     def learn(self):
         while True:
-            self.learn_step_counter += 1
+            self.update_count += 1
+
+            if self.update_count % 10 == 0:
+                rewards = self.evaluation()
+                rewards_mu = np.array([np.sum(np.array(l_i), 0) 
+                                       for l_i in rewards]).mean()
+                print('Eval Reward %.2f' % (rewards_mu))
 
             # target parameter update
-            if self.learn_step_counter % 500 == 0:
-                print('update target')
+            if self.update_count % self.target_net_update_freq  == 0:
                 self.update_target()
 
             states, actions, rewards, next_states, dones = self.q_batch.get(block=True)
@@ -69,9 +77,6 @@ class Learner:
             # (m, N_QUANT, N_QUANT)
             loss = torch.mean(torch.sum(torch.mean(loss, dim=2), dim=1))
 
-            if self.learn_step_counter % 100 == 0:
-                print('loss:', loss.item())
-
             # backprop loss
             self.optimizer.zero_grad()
             loss.backward()
@@ -79,3 +84,35 @@ class Learner:
 
     def update_target(self):
         self.target_net.load_state_dict(self.net.state_dict())
+
+    def evaluation(self):
+        rewards = []
+        for _ in range(10):
+            rewards_i = []
+
+            state = self.env_eval.reset()
+            action = self.action(state)
+            state, reward, done, _ = self.env_eval.step(action)
+            rewards_i.append(reward)
+
+            while not done:
+                action = self.action(state)
+                state, reward, done, _ = self.env_eval.step(action)
+                rewards_i.append(reward)
+            rewards.append(rewards_i)
+
+        return rewards
+
+    def action(self, state):
+        state = torch.FloatTensor(state).to(self.device).unsqueeze(0)
+    
+        action_value, _ = self.net(state)
+        if self.update_count > 5000:
+            dist_action = action_value[0]
+            sns.distplot(dist_action[:, 0], bins=10, color='red')
+            sns.distplot(dist_action[:, 1], bins=10, color='blue')
+            plt.show()
+
+        action_value = action_value[0].sum(dim=0)
+        action = torch.argmax(action_value).detach().cpu().item()
+        return action
