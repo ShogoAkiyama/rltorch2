@@ -77,7 +77,7 @@ class Learner:
 
             diff = target_q.t().unsqueeze(-1) - curr_q.unsqueeze(0)
 
-            loss = self.huber(diff) * torch.abs(self.cumulative_density.view(1, -1) - (diff < 0).to(torch.float))
+            loss = self.huber(diff) #* torch.abs(self.cumulative_density.view(1, -1) - (diff < 0).to(torch.float))
             loss = loss.transpose(0, 1)
             loss = loss.mean(1).sum(-1).mean()
 
@@ -137,10 +137,10 @@ class Learner:
     def action(self, state):
         state = torch.FloatTensor([state]).to(self.device)
         action = (self.model(state) * self.quantile_weight)
-        if self.update_count > 5000:
-            dist_action = action[0].cpu().detach().numpy()
-            sns.distplot(dist_action[0], bins=10, color='red')
-            sns.distplot(dist_action[1], bins=10, color='blue')
-            plt.show()
+        # if self.update_count > 5000:
+        #     dist_action = action[0].cpu().detach().numpy()
+        #     sns.distplot(dist_action[0], bins=10, color='red')
+        #     sns.distplot(dist_action[1], bins=10, color='blue')
+        #     plt.show()
         action = action.sum(dim=2).max(dim=1)[1]
         return action.item()

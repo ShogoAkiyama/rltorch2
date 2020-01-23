@@ -51,7 +51,7 @@ class Learner:
 
             # action value distribution prediction
             # [BATCH, N_QUANT, N_ACTIONS]
-            curr_q, _ = self.net(states)
+            curr_q, tau = self.net(states)
 
             # 実際に行動したQだけを取り出す
             # [BATCH, N_QUANT, 1]
@@ -60,7 +60,6 @@ class Learner:
             
             # # [BATCH, N_QUANT, N_QUANT]
             curr_q = curr_q.repeat(1, 1, self.n_quant)
-            curr_q = curr_q.permute(0, 2, 1)
 
             # get next state value
             # [BATCH, N_QUANT, N_ACTIONS]
@@ -68,23 +67,32 @@ class Learner:
             next_action = next_q.sum(dim=1).argmax(dim=1)
 
             # target_q
+            with torch.no_grad():
+                # [BATCH, N_QUANT, N_ACT]
+                target_q, _ = self.target_net(next_states)
+                target_q = target_q.detach().cpu().numpy()
 
-            # [BATCH, N_QUANT, N_ACT]
-            target_q, _ = self.target_net(next_states)
-            target_q = target_q.detach().cpu().numpy()
+                # [BATCH, N_QUANT, 1]
+                target_q = np.array([target_q[i, :, action] 
+                                    for i, action in enumerate(next_action)])
+                target_q = rewards.reshape(-1, 1) + self.gamma * target_q * (1 - dones.reshape(-1, 1))
+                target_q = torch.FloatTensor(target_q).to(self.device).unsqueeze(2)
 
-            # [BATCH, N_QUANT, 1]
-            target_q = np.array([target_q[i, :, action] 
-                                 for i, action in enumerate(next_action)])
-            target_q = rewards.reshape(-1, 1) + self.gamma * target_q * (1 - dones.reshape(-1, 1))
-            target_q = torch.FloatTensor(target_q).to(self.device).unsqueeze(2)
+                # # [BATCH, N_QUANT, N_QUANT]
+                target_q = target_q.repeat(1, 1, self.n_quant)
+                target_q = target_q.permute(0, 2, 1)
 
-            # # [BATCH, N_QUANT, N_QUANT]
-            target_q = target_q.repeat(1, 1, self.n_quant)
-
-            loss = F.smooth_l1_loss(curr_q, target_q.detach(), reduction='none')
+            # loss = F.smooth_l1_loss(curr_q, target_q.detach(), reduction='none')
 
             # (BATCH, N_QUANT, N_QUANT)
+            tau = tau.repeat(1, 1, self.n_quant)
+            diff = target_q - curr_q
+            
+            loss = self.huber(diff)
+
+            I_delta = (diff<0).double()
+            loss *= torch.abs(tau - I_delta)
+
             # huber loss
             loss = torch.mean(torch.sum(torch.mean(loss, dim=2), dim=1))
 
@@ -92,6 +100,10 @@ class Learner:
             self.optimizer.zero_grad()
             loss.backward()
             self.optimizer.step()
+
+    def huber(self, x):
+        cond = (x.abs() < 1.0).float().detach()
+        return 0.5 * x.pow(2) * cond + (x.abs() - 0.5) * (1.0 - cond)
 
     def update_target(self):
         self.target_net.load_state_dict(self.net.state_dict())
