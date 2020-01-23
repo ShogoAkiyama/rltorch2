@@ -1,5 +1,8 @@
 import numpy as np
 import gym
+import matplotlib.pyplot as plt
+import seaborn as sns
+
 import torch
 import torch.optim as optim
 import torch.nn.functional as F
@@ -107,8 +110,8 @@ class Learner:
         state = torch.FloatTensor(state).to(self.device).unsqueeze(0)
     
         action_value, _ = self.net(state)
-        if self.update_count > 5000:
-            dist_action = action_value[0]
+        if self.update_count > 1500:
+            dist_action = action_value[0].detach().cpu().numpy()
             sns.distplot(dist_action[:, 0], bins=10, color='red')
             sns.distplot(dist_action[:, 1], bins=10, color='blue')
             plt.show()
