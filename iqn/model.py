@@ -26,10 +26,14 @@ class ConvNet(nn.Module):
         mb_size = x.size(0)
 
         # [batch_size, quant, 4]
-        x = x.repeat(1, 1, self.n_quant).view(mb_size, self.n_quant, self.n_state)
+        # [batch_size, num_state, quant] → [batch_size, quant, num_state]
+        # x = x.repeat(1, 1, self.n_quant).view(mb_size, self.n_quant, self.n_state)
         # x = x.view(mb_size, -1, self.n_state)
         # [batch_size, quant, 64]
         x = F.relu(self.fc0(x))
+
+        # [batch_size, 64, quant] → [batch_size, quant, 64]
+        x = x.repeat(1, 1, self.n_quant).view(mb_size, self.n_quant, 64)
 
         # [batch_size, quant, 1]
         tau = torch.rand(mb_size, self.n_quant).to(self.device).view(mb_size, -1, 1)
@@ -42,7 +46,7 @@ class ConvNet(nn.Module):
         # [batch_size, quant, quantile_embedding_dim]
         phi = F.relu(self.phi(cos_tau))
 
-        # [batch_size, quant, 4]
+        # [batch_size, quant, 64]
         h = x * phi
 
         # [batch_size, quant, 64]

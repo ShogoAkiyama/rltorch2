@@ -57,7 +57,7 @@ class Learner:
             # [BATCH, N_QUANT, 1]
             curr_q = torch.stack([curr_q[i].index_select(1, actions[i])
                                     for i in range(self.batch_size)])
-            
+
             # # [BATCH, N_QUANT, N_QUANT]
             curr_q = curr_q.repeat(1, 1, self.n_quant)
 
