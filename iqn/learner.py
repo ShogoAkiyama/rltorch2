@@ -16,7 +16,6 @@ class Learner:
         self.update_count = 0
         self.gamma = args.gamma
         self.batch_size = args.batch_size
-        
 
         self.env_eval = gym.make(args.env)
         self.n_act = self.env_eval.action_space.n
@@ -37,7 +36,7 @@ class Learner:
                 rewards = self.evaluation()
                 rewards_mu = np.array([np.sum(np.array(l_i), 0) 
                                        for l_i in rewards]).mean()
-                print('Eval Reward %.2f' % (rewards_mu))
+                print('update cnt %d Eval Reward %.2f' % (self.update_count, rewards_mu))
 
             # target parameter update
             if self.update_count % self.target_net_update_freq  == 0:
@@ -51,33 +50,42 @@ class Learner:
             dones = np.array([int(i) for i in dones])
 
             # action value distribution prediction
-            # (m, N_ACTIONS, N_ATOM)
+            # [BATCH, N_QUANT, N_ACTIONS]
             curr_q, _ = self.net(states)
-            # curr_q = curr_q.sum(dim=1)
 
             # 実際に行動したQだけを取り出す
+            # [BATCH, N_QUANT, 1]
             curr_q = torch.stack([curr_q[i].index_select(1, actions[i])
                                     for i in range(self.batch_size)])
+            
+            # # [BATCH, N_QUANT, N_QUANT]
             curr_q = curr_q.repeat(1, 1, self.n_quant)
+            curr_q = curr_q.permute(0, 2, 1)
 
             # get next state value
-            next_q, _ = self.net(next_states)  # (m, N_ACTIONS, N_ATOM)
-            next_action = next_q.sum(dim=1).argmax(dim=1)  # (m)
+            # [BATCH, N_QUANT, N_ACTIONS]
+            next_q, _ = self.net(next_states)
+            next_action = next_q.sum(dim=1).argmax(dim=1)
 
             # target_q
-            # q_target = R + gamma * (1 - terminate) * q_next
 
-            # [batch, quant, n_act]
+            # [BATCH, N_QUANT, N_ACT]
             target_q, _ = self.target_net(next_states)
             target_q = target_q.detach().cpu().numpy()
-            target_q = np.array([target_q[i, :, action] for i, action in enumerate(next_action)])
+
+            # [BATCH, N_QUANT, 1]
+            target_q = np.array([target_q[i, :, action] 
+                                 for i, action in enumerate(next_action)])
             target_q = rewards.reshape(-1, 1) + self.gamma * target_q * (1 - dones.reshape(-1, 1))
             target_q = torch.FloatTensor(target_q).to(self.device).unsqueeze(2)
+
+            # # [BATCH, N_QUANT, N_QUANT]
             target_q = target_q.repeat(1, 1, self.n_quant)
 
             loss = F.smooth_l1_loss(curr_q, target_q.detach(), reduction='none')
 
-            # (m, N_QUANT, N_QUANT)
+            # (BATCH, N_QUANT, N_QUANT)
+            # huber loss
             loss = torch.mean(torch.sum(torch.mean(loss, dim=2), dim=1))
 
             # backprop loss
@@ -110,11 +118,11 @@ class Learner:
         state = torch.FloatTensor(state).to(self.device).unsqueeze(0)
     
         action_value, _ = self.net(state)
-        if self.update_count > 1500:
-            dist_action = action_value[0].detach().cpu().numpy()
-            sns.distplot(dist_action[:, 0], bins=10, color='red')
-            sns.distplot(dist_action[:, 1], bins=10, color='blue')
-            plt.show()
+        # if self.update_count > 1500:
+        #     dist_action = action_value[0].detach().cpu().numpy()
+        #     sns.distplot(dist_action[:, 0], bins=10, color='red')
+        #     sns.distplot(dist_action[:, 1], bins=10, color='blue')
+        #     plt.show()
 
         action_value = action_value[0].sum(dim=0)
         action = torch.argmax(action_value).detach().cpu().item()

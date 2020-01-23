@@ -56,7 +56,7 @@ class Actor:
 
             self.env_state = next_state
             if done:
-                print(' '*20, 'Actor:', self.actor_id,
+                print(' '*30, 'Actor:', self.actor_id,
                       'Episode:', self.n_episodes, ' steps:', self.n_steps)
                 self.n_steps = 0
 

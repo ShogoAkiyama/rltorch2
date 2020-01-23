@@ -37,6 +37,7 @@ class ConvNet(nn.Module):
         pi_mtx = math.pi * torch.arange(0, 64, 1.0).to(self.device).unsqueeze(0)
         # [batch_size, quant, 64]
         cos_tau = torch.cos(torch.matmul(tau, pi_mtx))
+
         # [batch_size, quant, quantile_embedding_dim]
         phi = F.relu(self.phi(cos_tau))
 
