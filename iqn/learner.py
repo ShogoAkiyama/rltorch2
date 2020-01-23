@@ -118,7 +118,7 @@ class Learner:
         state = torch.FloatTensor(state).to(self.device).unsqueeze(0)
     
         action_value, _ = self.net(state)
-        # if self.update_count > 1500:
+        # if self.update_count > 3000:
         #     dist_action = action_value[0].detach().cpu().numpy()
         #     sns.distplot(dist_action[:, 0], bins=10, color='red')
         #     sns.distplot(dist_action[:, 1], bins=10, color='blue')

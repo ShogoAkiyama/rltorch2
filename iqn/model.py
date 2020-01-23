@@ -22,11 +22,12 @@ class ConvNet(nn.Module):
         self.fc_q = nn.Linear(64, n_actions)
 
     def forward(self, x):
+        # [batch_size, 4]
         mb_size = x.size(0)
 
         # [batch_size, quant, 4]
         x = x.repeat(1, 1, self.n_quant).view(mb_size, self.n_quant, self.n_state)
-        x = x.view(mb_size, -1, self.n_state)
+        # x = x.view(mb_size, -1, self.n_state)
         # [batch_size, quant, 64]
         x = F.relu(self.fc0(x))
 
