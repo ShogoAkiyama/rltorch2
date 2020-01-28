@@ -97,6 +97,7 @@ class IQN(nn.Module):
 
         self.n_actions = n_actions
         self.n_quant = n_quant
+        self.i = torch.arange(0, 64, 1.0).to(self.device).unsqueeze(0)
 
         self.embedding = nn.Embedding.from_pretrained(
             embeddings=text_vectors, freeze=True)
@@ -115,7 +116,7 @@ class IQN(nn.Module):
         self.fc2 = nn.Linear(64, 64)
         self.fc_q = nn.Linear(64, n_actions)
 
-    def forward(self, text, eta=1.0):
+    def forward(self, text, eta=1.0, eval=False):
         # [batch_size, num_state]
         mb_size = text.size(0)
 
@@ -134,10 +135,16 @@ class IQN(nn.Module):
         x = x.repeat(1, 1, self.n_quant).view(mb_size, self.n_quant, 64)
 
         # [batch_size, quant, 1]
-        tau = eta * torch.rand(mb_size, self.n_quant).to(self.device).view(mb_size, -1, 1)
+        if eval:
+            tau = eta * torch.linspace(0, 1, self.n_quant).to(self.device).unsqueeze(1)
+            print(tau.shape)
+            tau = tau.repeat(mb_size, 1).view(mb_size, -1, 1)
+            print(tau.shape)
+        else:
+            tau = eta * torch.rand(mb_size, self.n_quant).to(self.device).view(mb_size, -1, 1)
 
         # [1, 64]
-        pi_mtx = math.pi * torch.arange(0, 64, 1.0).to(self.device).unsqueeze(0)
+        pi_mtx = math.pi * self.i
 
         # [batch_size, quant, 64]
         cos_tau = torch.cos(torch.matmul(tau, pi_mtx))

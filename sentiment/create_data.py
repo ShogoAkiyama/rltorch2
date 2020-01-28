@@ -9,12 +9,12 @@ if __name__ == '__main__':
    parser = argparse.ArgumentParser()
    parser.add_argument('--train_date', type=int, default=2015)
    parser.add_argument('--test_date', type=int, default=2016)
-   # parser.add_argument('--code', type=list, default=['7203'])
+   parser.add_argument('--code', type=list, default=['7203'])
    # parser.add_argument('--code', type=list, default=['7203', '9984'])
-   parser.add_argument('--code', type=list, default=['8301', '7203', '9501', '6758', '9984',
-                                                     '8306', '8411', '6501', '6752', '6502',
-                                                     '7201', '9983', '6753', '8604', '7267',
-                                                     '8316', '5401', '6702', '9503', '7974'])
+   # parser.add_argument('--code', type=list, default=['8301', '7203', '9501', '6758', '9984',
+   #                                                   '8306', '8411', '6501', '6752', '6502',
+   #                                                   '7201', '9983', '6753', '8604', '7267',
+   #                                                   '8316', '5401', '6702', '9503', '7974'])
 
    args = parser.parse_args()
 

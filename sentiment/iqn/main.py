@@ -45,7 +45,6 @@ if __name__ == '__main__':
     if os.path.exists('./logs'):
         shutil.rmtree('./logs')
     os.mkdir('./logs')
-    
 
     # 読み込んだ内容に対して行う処理を定義
     TEXT = torchtext.data.Field(sequential=True, tokenize=tokenizer_with_preprocessing,
