@@ -13,7 +13,7 @@ if __name__ == '__main__':
     parser.add_argument('--quant', type=int, default=8)
     parser.add_argument('--lr', type=float, default=2.5e-4)
     parser.add_argument('--batch_size', type=int, default=32)
-    parser.add_argument('--gamma', type=float, default=0.95)
+    parser.add_argument('--gamma', type=float, default=0.0)
     parser.add_argument('--target_net_update_freq', type=int, default=500)
 
     args = parser.parse_args()

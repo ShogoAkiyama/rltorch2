@@ -30,19 +30,33 @@ class Trainer:
         self.epoch_loss = 0
 
         vocab_size = len(TEXT.vocab.freqs)
-        self.model = IQN(vocab_size, args.embedding_dim, args.n_filters,
-                           args.filter_sizes, args.pad_idx, args.num_actions).to(args.device)
-        self.target_model = IQN(vocab_size, args.embedding_dim, args.n_filters,
-                                args.filter_sizes, args.pad_idx, args.num_actions).to(args.device)
+        self.model = IQN(TEXT.vocab.vectors, vocab_size, args.embedding_dim, args.n_filters,
+                         args.filter_sizes, args.pad_idx,
+                         d_model=300,
+                         n_actions=args.num_actions,
+                         n_quant=self.num_quantile,
+                         rnn=args.rnn).to(args.device)
+        self.target_model = IQN(TEXT.vocab.vectors, vocab_size, args.embedding_dim, args.n_filters,
+                                args.filter_sizes, args.pad_idx,
+                                d_model=300,
+                                n_actions=args.num_actions,
+                                n_quant=self.num_quantile,
+                                rnn=args.rnn).to(args.device)
 
         self.target_model.load_state_dict(self.model.state_dict())
 
         self.optimizer = optim.Adam(self.model.parameters(), lr=args.learning_rate)
+        self.scheduler = optim.lr_scheduler.CosineAnnealingLR(self.optimizer, 1000)
 
     def run(self):
         while True:
             self.epoch_loss = 0
-            self.epochs += 1
+            self.epochs += 1            
+            self.model.train()
+
+            self.scheduler.step()
+            if self.epochs % 10 == 0:
+                print(self.scheduler.get_lr()[0])
             self.train_episode()
 
             # update target_model
@@ -50,6 +64,7 @@ class Trainer:
                 self.target_model.load_state_dict(self.model.state_dict())
 
             if self.epochs % self.evaluation_freq == 0:
+                self.model.eval()
                 self.evaluation(self.train_dl)
 
             if self.epochs % self.network_save_freq == 0:
@@ -66,19 +81,27 @@ class Trainer:
             self.train(states, next_states, rewards)
 
     def train(self, states, next_states, rewards):
-        curr_q, tau = self.model(states)
+        curr_q, tau, _ = self.model(states)
+        curr_q = curr_q.repeat(1, 1, self.num_quantile)
 
         # target_q
         with torch.no_grad():
-            next_q, _ = self.target_model(next_states)
-            next_q = next_q.squeeze(2)
+            if self.gamma == 0:
+                target_q = rewards.reshape(-1, 1)
+            else:
+                next_q, _, _ = self.target_model(next_states)
+                next_q = next_q.squeeze(2)
 
-            target_q = rewards.reshape(-1, 1) + self.gamma * next_q
+                target_q = rewards.reshape(-1, 1) + self.gamma * next_q
             target_q = target_q.unsqueeze(2)
             target_q = target_q.repeat(1, 1, self.num_quantile)
             target_q = target_q.permute(0, 2, 1)
 
-        diff = target_q.t().unsqueeze(-1) - curr_q.unsqueeze(0)
+        # (BATCH, N_QUANT, N_QUANT)
+        tau = tau.repeat(1, 1, self.num_quantile)
+        # print(curr_q.shape, ' ', target_q.shape)
+
+        diff = target_q - curr_q
 
         loss = self.huber(diff)
 
@@ -91,8 +114,8 @@ class Trainer:
         # Optimize the model
         self.optimizer.zero_grad()
         loss.backward()
-        for param in self.model.parameters():
-            param.grad.data.clamp_(-1, 1)
+        # for param in self.model.parameters():
+        #     param.grad.data.clamp_(-1, 1)
         self.optimizer.step()
 
         self.epoch_loss += loss.item()
@@ -107,15 +130,17 @@ class Trainer:
             rewards = batch.Label.to(self.device)
 
             with torch.no_grad():
-                dist, _ = self.model(states)
+                dist, _, _ = self.model(states)
+                dist = dist.squeeze(2)
                 dist_hist.append(dist.cpu().detach().numpy())
                 rewards_hist.append(rewards.cpu().detach().numpy())
-                _mean = dist.sum(dim=2)
+                # print(dist.shape)
+                _mean = dist.sum(dim=1)
                 actions = torch.where(
                             _mean > 0,
                             torch.LongTensor([1]).to(self.device),
                             torch.LongTensor([0]).to(self.device))
-
+            # print(actions.shape, ' ', rewards.shape)
             epi_rewards += (actions * rewards).detach().cpu().numpy().sum()
 
         print(' '*20,

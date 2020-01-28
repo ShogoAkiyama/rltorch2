@@ -7,6 +7,7 @@ import torch
 
 from utils import tokenizer_with_preprocessing
 from trainer import Trainer
+from torchtext.vocab import Vectors
 
 NEWS_PATH = os.path.join('..', 'data', 'news')
 
@@ -14,7 +15,6 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--max_length', type=int, default=256)
     parser.add_argument('--batch_size', type=int, default=32)
-    parser.add_argument('--n_epochs', type=int, default=100)
     parser.add_argument('--target_update_freq', type=int, default=100)
     parser.add_argument('--evaluation_freq', type=int, default=10)
     parser.add_argument('--network_save_freq', type=int, default=100)
@@ -25,10 +25,11 @@ if __name__ == '__main__':
     parser.add_argument('--n_filters', type=int, default=100)
     parser.add_argument('--filter_sizes', type=list, default=[3, 4, 5])
     parser.add_argument('--pad_idx', type=list, default=1)
-    parser.add_argument('--gamma', type=float, default=0.99)
+    parser.add_argument('--gamma', type=float, default=0.0)
     parser.add_argument('--learning_rate', type=float, default=2.5e-5)
 
     parser.add_argument('--test', action='store_true')
+    parser.add_argument('--rnn', action='store_true')
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     parser.add_argument('--device', type=str, default=device)
@@ -41,7 +42,8 @@ if __name__ == '__main__':
     torch.backends.cudnn.benchmark = True
 
     # ログファイルを入れる
-    shutil.rmtree('./logs')
+    if os.path.exists('./logs'):
+        shutil.rmtree('./logs')
     os.mkdir('./logs')
     
 
@@ -58,7 +60,10 @@ if __name__ == '__main__':
         fields=[('Text1', TEXT), ('Text2', TEXT), ('Label', LABEL)])
     train_ds = train_ds[0]
 
-    TEXT.build_vocab(train_ds, min_freq=args.min_freq)
+    japanese_fasttext_vectors = Vectors(name='../data/news/cc.ja.300.vec')
+    TEXT.build_vocab(train_ds,
+                     vectors=japanese_fasttext_vectors,
+                     min_freq=args.min_freq)
     TEXT.vocab.freqs
 
     train_dl = torchtext.data.Iterator(
