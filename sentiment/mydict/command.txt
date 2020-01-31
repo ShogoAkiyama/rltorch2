@@ -1,0 +1,6 @@
+$ /usr/local/libexec/mecab/mecab-dict-index \
+  -d /usr/lib/x86_64-linux-gnu/mecab/dic/mecab-ipadic-neologd \
+  -u mydict.dic \
+  -f utf-8 \
+  -t utf-8 \
+  mydict.csv

@@ -13,7 +13,7 @@ NEWS_PATH = os.path.join('..', 'data', 'news')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--max_length', type=int, default=256)
+    parser.add_argument('--max_length', type=int, default=64)
     parser.add_argument('--batch_size', type=int, default=32)
     parser.add_argument('--target_update_freq', type=int, default=100)
     parser.add_argument('--evaluation_freq', type=int, default=10)
