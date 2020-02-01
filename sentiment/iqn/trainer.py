@@ -7,12 +7,12 @@ import torch
 
 from model import IQN
 
-LOG_DIR = os.path.join('.', 'logs')
-
 
 class Trainer:
     def __init__(self, args, TEXT, train_dl):
 
+        self.LOG_DIR = os.path.join('.', 'logs',
+                                    str(args.num_quantile) + '_' + str(args.gamma))
         self.train_dl = train_dl
 
         self.target_update_freq = args.target_update_freq
@@ -157,9 +157,8 @@ class Trainer:
               ' loss: {:.3f}'.format(self.epoch_loss))
 
     def save_model(self):
-        torch.save(self.model.state_dict(), os.path.join(LOG_DIR, str(self.epochs))+'.pt')
+        torch.save(self.model.state_dict(), os.path.join(self.LOG_DIR, str(self.epochs))+'.pt')
 
     def load_model(self):
-        model_path = sorted(glob(os.path.join(LOG_DIR, '*')))[-1]
+        model_path = sorted(glob(os.path.join(self.LOG_DIR, '*')))[-1]
         self.model.load_state_dict(torch.load(model_path))
-    

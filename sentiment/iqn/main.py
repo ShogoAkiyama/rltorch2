@@ -42,9 +42,13 @@ if __name__ == '__main__':
     torch.backends.cudnn.benchmark = True
 
     # ログファイルを入れる
-    if os.path.exists('./logs'):
-        shutil.rmtree('./logs')
-    os.mkdir('./logs')
+    # if os.path.exists('./logs'):
+    #     shutil.rmtree('./logs')
+    # os.mkdir('./logs')
+    log_dir = os.path.join('.', 'logs', str(args.num_quantile) + '_' + str(args.gamma))
+    if os.path.exists(log_dir):
+        shutil.rmtree(log_dir)
+    os.mkdir(log_dir)
 
     # 読み込んだ内容に対して行う処理を定義
     TEXT = torchtext.data.Field(sequential=True, tokenize=tokenizer_with_preprocessing,
