@@ -16,6 +16,8 @@ class CNN(nn.Module):
         ])
 
         self.fc0 = nn.Linear(len(filter_sizes) * n_filters, 64)
+        self.dropout = nn.Dropout(p=0.3)
+
 
     def forward(self, embedded):
         # [batch size, 1, sen len, emb dim]
@@ -29,6 +31,8 @@ class CNN(nn.Module):
 
         # [batch size, n_filters * len(filter_sizes)]
         x = torch.cat(x, dim=1)
+        
+        x = self.dropout(x)
 
         return self.fc0(x)
 
@@ -137,9 +141,7 @@ class IQN(nn.Module):
         # [batch_size, quant, 1]
         if eval:
             tau = eta * torch.linspace(0, 1, self.n_quant).to(self.device).unsqueeze(1)
-            print(tau.shape)
             tau = tau.repeat(mb_size, 1).view(mb_size, -1, 1)
-            print(tau.shape)
         else:
             tau = eta * torch.rand(mb_size, self.n_quant).to(self.device).view(mb_size, -1, 1)
 

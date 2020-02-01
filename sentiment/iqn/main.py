@@ -22,7 +22,7 @@ if __name__ == '__main__':
 
     parser.add_argument('--min_freq', type=int, default=10)
     parser.add_argument('--embedding_dim', type=int, default=300)
-    parser.add_argument('--n_filters', type=int, default=100)
+    parser.add_argument('--n_filters', type=int, default=50)
     parser.add_argument('--filter_sizes', type=list, default=[3, 4, 5])
     parser.add_argument('--pad_idx', type=list, default=1)
     parser.add_argument('--gamma', type=float, default=0.0)

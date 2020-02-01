@@ -76,7 +76,7 @@ class Trainer:
         for batch in self.train_dl:
             states = batch.Text1[0].to(self.device)
             next_states = batch.Text2[0].to(self.device)
-            rewards = batch.Label.to(self.device)
+            rewards = torch.round(batch.Label.to(self.device))
 
             self.train(states, next_states, rewards)
 
