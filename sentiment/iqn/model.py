@@ -120,7 +120,7 @@ class IQN(nn.Module):
         self.fc2 = nn.Linear(64, 64)
         self.fc_q = nn.Linear(64, n_actions)
 
-    def forward(self, text, eta=1.0, eval=False):
+    def forward(self, text, eta0=0.0, eta1=1.0, eval=False):
         # [batch_size, num_state]
         mb_size = text.size(0)
 
@@ -140,10 +140,10 @@ class IQN(nn.Module):
 
         # [batch_size, quant, 1]
         if eval:
-            tau = eta * torch.linspace(0, 1, self.n_quant).to(self.device).unsqueeze(1)
+            tau = torch.linspace(eta0, eta1, self.n_quant).to(self.device).unsqueeze(1)
             tau = tau.repeat(mb_size, 1).view(mb_size, -1, 1)
         else:
-            tau = eta * torch.rand(mb_size, self.n_quant).to(self.device).view(mb_size, -1, 1)
+            tau = torch.rand(mb_size, self.n_quant).to(self.device).view(mb_size, -1, 1)
 
         # [1, 64]
         pi_mtx = math.pi * self.i

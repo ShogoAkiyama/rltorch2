@@ -7,12 +7,21 @@ import torch
 
 from model import IQN
 
+from torch.utils.tensorboard import SummaryWriter
+
 
 class Trainer:
     def __init__(self, args, TEXT, train_dl):
 
-        self.LOG_DIR = os.path.join('.', 'logs',
-                                    str(args.num_quantile) + '_' + str(args.gamma))
+        self.log_path = os.path.join('.', 'logs',
+                            str(args.num_quantile) + '_' + str(args.gamma))
+        self.summary_path = os.path.join(self.log_path, 'summary')
+
+        if not os.path.exists(self.summary_path):
+            os.makedirs(self.summary_path)
+
+        self.writer = SummaryWriter(log_dir=self.summary_path)
+
         self.train_dl = train_dl
 
         self.target_update_freq = args.target_update_freq
@@ -28,6 +37,7 @@ class Trainer:
 
         self.epochs = 0
         self.epoch_loss = 0
+        self.epi_rewards = 0
 
         vocab_size = len(TEXT.vocab.freqs)
         self.model = IQN(TEXT.vocab.vectors, vocab_size, args.embedding_dim, args.n_filters,
@@ -143,6 +153,8 @@ class Trainer:
             # print(actions.shape, ' ', rewards.shape)
             epi_rewards += (actions * rewards).detach().cpu().numpy().sum()
 
+        self.epi_rewards = epi_rewards
+
         print(' '*20,
               'train_reward: ', epi_rewards)
         
@@ -156,9 +168,15 @@ class Trainer:
         print('epoch: ', self.epochs,
               ' loss: {:.3f}'.format(self.epoch_loss))
 
+        self.writer.add_scalar("loss", self.epoch_loss, self.epochs)
+        self.writer.add_scalar("epi_rewards", self.epi_rewards, self.epochs)
+
     def save_model(self):
-        torch.save(self.model.state_dict(), os.path.join(self.LOG_DIR, str(self.epochs))+'.pt')
+        torch.save(self.model.state_dict(), os.path.join(self.log_path, str(self.epochs))+'.pt')
 
     def load_model(self):
-        model_path = sorted(glob(os.path.join(self.LOG_DIR, '*')))[-1]
+        model_path = sorted(glob(os.path.join(self.log_path, '*.pt')))[-1]
         self.model.load_state_dict(torch.load(model_path))
+
+    def __del__(self):
+        self.writer.close()

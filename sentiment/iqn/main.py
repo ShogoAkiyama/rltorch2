@@ -35,20 +35,25 @@ if __name__ == '__main__':
     parser.add_argument('--device', type=str, default=device)
 
     # IQN
-    parser.add_argument('--num_quantile', type=int, default=64)
+    parser.add_argument('--num_quantile', type=int, default=32)
 
     args = parser.parse_args()
 
     torch.backends.cudnn.benchmark = True
 
     # ログファイルを入れる
-    # if os.path.exists('./logs'):
-    #     shutil.rmtree('./logs')
-    # os.mkdir('./logs')
     log_dir = os.path.join('.', 'logs', str(args.num_quantile) + '_' + str(args.gamma))
+    summary_dir = os.path.join(log_dir, 'summary')
+
     if os.path.exists(log_dir):
         shutil.rmtree(log_dir)
     os.mkdir(log_dir)
+
+    if not os.path.exists(summary_dir):
+        os.makedirs(summary_dir)
+    else:
+        shutil.rmtree(summary_dir)
+        os.makedirs(summary_dir)
 
     # 読み込んだ内容に対して行う処理を定義
     TEXT = torchtext.data.Field(sequential=True, tokenize=tokenizer_with_preprocessing,
@@ -78,4 +83,3 @@ if __name__ == '__main__':
         trainer.test()
     else:
         trainer.run()
-
