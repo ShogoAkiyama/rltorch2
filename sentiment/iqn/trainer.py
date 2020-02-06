@@ -11,7 +11,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 
 class Trainer:
-    def __init__(self, args, TEXT, train_dl):
+    def __init__(self, args, text_vectors, vocab_size, train_dl):
 
         self.log_path = os.path.join('.', 'logs',
                             str(args.num_quantile) + '_' + str(args.gamma))
@@ -39,16 +39,14 @@ class Trainer:
         self.epoch_loss = 0
         self.epi_rewards = 0
 
-        vocab_size = len(TEXT.vocab.freqs)
-        self.model = IQN(TEXT.vocab.vectors, vocab_size, args.embedding_dim, args.n_filters,
+        # vocab_size = len(TEXT.vocab.freqs)
+        self.model = IQN(text_vectors, vocab_size, args.embedding_dim, args.n_filters,
                          args.filter_sizes, args.pad_idx,
-                         d_model=300,
                          n_actions=args.num_actions,
                          n_quant=self.num_quantile,
                          rnn=args.rnn).to(args.device)
-        self.target_model = IQN(TEXT.vocab.vectors, vocab_size, args.embedding_dim, args.n_filters,
+        self.target_model = IQN(text_vectors, vocab_size, args.embedding_dim, args.n_filters,
                                 args.filter_sizes, args.pad_idx,
-                                d_model=300,
                                 n_actions=args.num_actions,
                                 n_quant=self.num_quantile,
                                 rnn=args.rnn).to(args.device)
@@ -84,9 +82,9 @@ class Trainer:
 
     def train_episode(self):
         for batch in self.train_dl:
-            states = batch.Text1[0].to(self.device)
-            next_states = batch.Text2[0].to(self.device)
-            rewards = torch.round(batch.Label.to(self.device))
+            states = batch['State'].to(self.device)
+            next_states = batch['Next_State'].to(self.device)
+            rewards = torch.round(batch['Reward'].to(self.device))
 
             self.train(states, next_states, rewards)
 
@@ -96,7 +94,7 @@ class Trainer:
 
         # target_q
         with torch.no_grad():
-            if self.gamma == 0:
+            if self.gamma == 0.0:
                 target_q = rewards.reshape(-1, 1)
             else:
                 next_q, _, _ = self.target_model(next_states)
@@ -136,8 +134,8 @@ class Trainer:
         rewards_hist = []
 
         for batch in dl:
-            states = batch.Text1[0].to(self.device)
-            rewards = batch.Label.to(self.device)
+            states = batch['State'].to(self.device)
+            rewards = batch['Reward'].to(self.device)
 
             with torch.no_grad():
                 dist, _, _ = self.model(states)

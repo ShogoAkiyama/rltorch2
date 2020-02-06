@@ -2,12 +2,12 @@ import os
 import argparse
 import shutil
 
-import torchtext
 import torch
-
-from utils import tokenizer_with_preprocessing
-from trainer import Trainer
 from torchtext.vocab import Vectors
+
+from utils import tokenizer_with_preprocessing, MyDataset
+from trainer import Trainer
+
 
 NEWS_PATH = os.path.join('..', 'data', 'news')
 
@@ -55,31 +55,30 @@ if __name__ == '__main__':
         shutil.rmtree(summary_dir)
         os.makedirs(summary_dir)
 
-    # 読み込んだ内容に対して行う処理を定義
-    TEXT = torchtext.data.Field(sequential=True, tokenize=tokenizer_with_preprocessing,
-                                use_vocab=True, lower=True, include_lengths=True,
-                                batch_first=True, fix_length=args.max_length,
-                                init_token="<cls>", eos_token="<eos>")
-    LABEL = torchtext.data.Field(sequential=False, use_vocab=False, dtype=torch.float)
-
-    train_ds = torchtext.data.TabularDataset.splits(
-        path=NEWS_PATH, train='text_train.tsv',
-        format='tsv',
-        fields=[('Text1', TEXT), ('Text2', TEXT), ('Label', LABEL)])
-    train_ds = train_ds[0]
+    # Create Dataset
+    train_ds = MyDataset(
+        path=os.path.join('..', 'data', 'news', 'text_train.tsv'),
+        specials=['<company>', '<organization>', '<person>', '<location>'],
+        max_len=args.max_length
+    )
 
     japanese_fasttext_vectors = Vectors(name='../data/news/cc.ja.300.vec')
-    TEXT.build_vocab(train_ds,
-                     vectors=japanese_fasttext_vectors,
-                     min_freq=args.min_freq)
-    TEXT.vocab.freqs
 
-    train_dl = torchtext.data.Iterator(
-        train_ds, batch_size=args.batch_size, train=True)
+    train_ds.build_vocab(
+        vectors=japanese_fasttext_vectors,
+        min_freq=args.min_freq
+    )
 
-    trainer = Trainer(args, TEXT, train_dl)
+    train_dl = torch.utils.data.DataLoader(
+        train_ds, 
+        batch_size = args.batch_size, 
+        shuffle = True, 
+        num_workers = 3
+    )
 
-    if args.test:
-        trainer.test()
-    else:
-        trainer.run()
+    text_vectors = train_ds.vocab.vectors
+    vocab_size = len(train_ds.vocab.vectors)
+
+    trainer = Trainer(args, text_vectors, vocab_size, train_dl)
+    trainer.run()
+    # Crete DataLoader

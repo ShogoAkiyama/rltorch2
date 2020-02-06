@@ -20,14 +20,14 @@ class CNN(nn.Module):
 
 
     def forward(self, embedded):
-        # [batch size, 1, sen len, emb dim]
+        # [batch size, 1, max_len, emb dim]
         embedded = embedded.unsqueeze(1)
 
-        # [batch size, n_filters, sen len - filter_sizes[n] + 1]
+        # [batch size, n_filters, max_len - filter_sizes[n] + 1]
         x = [F.relu(conv(embedded)).squeeze(3) for conv in self.convs]
 
-        # [batch size, n_filters, sen len - filter_sizes[n] + 1]
-        x = [F.max_pool1d(conv, conv.shape[2]).squeeze(2) for conv in x]
+        # # [batch size, n_filters, max_len - filter_sizes[n] + 1]
+        # x = [F.max_pool1d(conv, conv.shape[2]).squeeze(2) for conv in x]
 
         # [batch size, n_filters * len(filter_sizes)]
         x = torch.cat(x, dim=1)
@@ -94,7 +94,7 @@ class Attn(nn.Module):
 class IQN(nn.Module):
     def __init__(self, text_vectors, vocab_size, embedding_dim,
                  n_filters, filter_sizes, pad_idx,
-                 d_model=300, n_actions=1, n_quant=8, rnn=False):
+                 n_actions=1, n_quant=8, rnn=False):
         super().__init__()
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.rnn = rnn
