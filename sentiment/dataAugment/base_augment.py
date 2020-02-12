@@ -5,9 +5,6 @@ from multiprocessing.dummy import Pool as ThreadPool
 from utils.method import Method
 from utils.action import Action
 
-# from nlpaug.util import WarningException, WarningName, WarningCode, WarningMessage
-
-
 class Augmenter:
     def __init__(self, name, method, action, aug_min, aug_max, aug_p=0.1, device='cpu', verbose=0):
         self.name = name
@@ -32,21 +29,12 @@ class Augmenter:
                 'Action must be one of {} while {} is passed'.format(Action.getall(), action))
 
     def augment(self, data, n=1, num_thread=1):
-        """
-        :param object data: Data for augmentation
-        :param int n: Number of unique augmented output
-        :param int num_thread: Number of thread for data augmentation. Use this option when you are using CPU and
-            n is larger than 1
-        :return: Augmented data
-
-        >>> augmented_data = aug.augment(data)
-
-        """
-        max_retry_times = 3  # max loop times of n to generate expected number of outputs
+        max_retry_times = 1  # max loop times of n to generate expected number of outputs
 
         results = []
         action_fx = None
-        clean_data = self.clean(data)
+        # clean_data = self.clean(data)
+        clean_data = data
         if self.action == Action.INSERT:
             action_fx = self.insert
         elif self.action == Action.SUBSTITUTE:
@@ -88,16 +76,6 @@ class Augmenter:
         return results[:n]
 
     def augments(self, data, n=1, num_thread=1):
-        """
-        :param list data: List of data
-        :param int n: Number of unique augmented output
-        :param int num_thread: Number of thread for data augmentation. Use this option when you are using CPU and
-            n is larger than 1. Do NOT support GPU process.
-        :return: Augmented data (Does not follow original order)
-
-        >>> augmented_data = aug.augment(data)
-
-        """
         augmented_results = []
         if num_thread == 1 or self.device == 'cuda':
             for d in data:
@@ -115,14 +93,6 @@ class Augmenter:
         return augmented_results
 
     @classmethod
-    def _validate_augment(cls, data):
-        if data is None or len(data) == 0:
-            return [WarningException(name=WarningName.INPUT_VALIDATION_WARNING,
-                                     code=WarningCode.WARNING_CODE_001, msg=WarningMessage.LENGTH_IS_ZERO)]
-
-        return []
-
-    @classmethod
     def _parallel_augment(cls, action_fx, data, n, num_thread=2):
         pool = ThreadPool(num_thread)
         results = pool.map(action_fx, [data] * n)
@@ -138,35 +108,6 @@ class Augmenter:
         pool.join()
         return results
 
-    def insert(self, data):
-        raise NotImplementedError
-
-    def substitute(self, data):
-        raise NotImplementedError
-
-    def swap(self, data):
-        raise NotImplementedError
-
-    def delete(self, data):
-        raise NotImplementedError
-
-    def split(self, data):
-        raise NotImplementedError
-
-    def tokenizer(self, tokens):
-        raise NotImplementedError
-
-    def evaluate(self):
-        raise NotImplementedError
-
-    @classmethod
-    def is_duplicate(cls, dataset, data):
-        raise NotImplementedError
-
-    @classmethod
-    def prob(cls):
-        return np.random.random()
-
     @classmethod
     def sample(cls, x, num):
         if isinstance(x, list):
@@ -174,11 +115,8 @@ class Augmenter:
         elif isinstance(x, int):
             return np.random.randint(1, x-1)
 
-    @classmethod
-    def clean(cls, data):
-        raise NotImplementedError
-
-    def _generate_aug_cnt(self, size, aug_min, aug_max, aug_p=None):
+    def generate_aug_cnt(self, size, aug_p=None):
+        # return self._generate_aug_cnt(size, self.aug_min, self.aug_max, aug_p)
         if aug_p is not None:
             percent = aug_p
         elif self.aug_p is not None:
@@ -187,20 +125,8 @@ class Augmenter:
             percent = 0.3
         cnt = int(percent * size)
 
-        if cnt < aug_min:
-            return aug_min
-        if aug_max is not None and cnt > aug_max:
-            return aug_max
+        if cnt < self.aug_min:
+            return self.aug_min
+        if self.aug_max is not None and cnt > self.aug_max:
+            return self.aug_max
         return cnt
-
-    def generate_aug_cnt(self, size, aug_p=None):
-        return self._generate_aug_cnt(size, self.aug_min, self.aug_max, aug_p)
-
-    def generate_aug_idxes(self, inputs):
-        aug_cnt = self.generate_aug_cnt(len(inputs))
-        token_idxes = [i for i, _ in enumerate(inputs)]
-        aug_idxes = self.sample(token_idxes, aug_cnt)
-        return aug_idxes
-
-    def __str__(self):
-        return 'Name:{}, Action:{}, Method:{}'.format(self.name, self.action, self.method)
