@@ -103,6 +103,7 @@ class IQN(nn.Module):
         self.n_quant = n_quant
         self.i = torch.arange(0, 64, 1.0).to(self.device).unsqueeze(0)
 
+        self.embedding_dropout = nn.Dropout(0.3)
         self.embedding = nn.Embedding.from_pretrained(
             embeddings=text_vectors, freeze=True)
         # self.embedding = nn.Embedding(
@@ -126,6 +127,7 @@ class IQN(nn.Module):
 
         # [batch_size, sen_len] → [batch_size, sen_len, emb_dim]
         embedded = self.embedding(text)
+        embedded = self.embedding_dropout(embedded)
 
         if self.rnn:
             x, attn = self.rnn(embedded)
