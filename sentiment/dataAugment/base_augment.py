@@ -2,7 +2,10 @@ import random
 import numpy as np
 from multiprocessing.dummy import Pool as ThreadPool
 
-from nlpaug.util import Action, Method, WarningException, WarningName, WarningCode, WarningMessage
+from utils.method import Method
+from utils.action import Action
+
+# from nlpaug.util import WarningException, WarningName, WarningCode, WarningMessage
 
 
 class Augmenter:
@@ -40,23 +43,6 @@ class Augmenter:
 
         """
         max_retry_times = 3  # max loop times of n to generate expected number of outputs
-
-        exceptions = self._validate_augment(data)
-        # TODO: Handle multiple exceptions
-        for exception in exceptions:
-            if isinstance(exception, WarningException):
-                if self.verbose > 0:
-                    exception.output()
-
-                # Return empty value per data type
-                if isinstance(data, str):
-                    return ''
-                elif isinstance(data, list):
-                    return []
-                elif isinstance(data, np.ndarray):
-                    return np.array([])
-
-                return None
 
         results = []
         action_fx = None

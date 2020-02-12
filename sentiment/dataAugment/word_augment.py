@@ -1,9 +1,9 @@
 import string
 import re
 
-from nlpaug.util import Method
-from nlpaug import Augmenter
-from nlpaug.util import WarningException, WarningName, WarningCode, WarningMessage
+from utils.method import Method
+from base_augment import Augmenter
+# from nlpaug.util import WarningException, WarningName, WarningCode, WarningMessage
 
 
 class WordAugmenter(Augmenter):
@@ -81,10 +81,6 @@ class WordAugmenter(Augmenter):
         word_idxes = self.pre_skip_aug(tokens)
         word_idxes = self.skip_aug(word_idxes, tokens)
         if len(word_idxes) == 0:
-            if self.verbose > 0:
-                exception = WarningException(name=WarningName.OUT_OF_VOCABULARY,
-                                             code=WarningCode.WARNING_CODE_002, msg=WarningMessage.NO_WORD)
-                exception.output()
             return []
         if len(word_idxes) < aug_cnt:
             aug_cnt = len(word_idxes)
