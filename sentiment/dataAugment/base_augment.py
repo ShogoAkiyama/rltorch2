@@ -20,14 +20,10 @@ class Augmenter:
 
         results = []
         action_fx = None
-<<<<<<< HEAD
-        clean_data = self.clean(data)
-        if self.action == 'insert':
-=======
+
         # clean_data = self.clean(data)
         clean_data = data
-        if self.action == Action.INSERT:
->>>>>>> 488c34e86c712194a41de1667da21993c8a3d36a
+        if self.action == 'insert':
             action_fx = self.insert
         elif self.action == 'substitute':
             action_fx = self.substitute

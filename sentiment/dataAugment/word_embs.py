@@ -42,9 +42,6 @@ class WordEmbsAug(WordAugmenter):
         self.normalized_vectors = \
             self.standard_norm(self.model.vectors.numpy())
 
-    def tokenizer(self, data):
-        return data.split(' ')
-
     def align_capitalization(self, src_token, dest_token):
         if self.get_word_case(src_token) == 'capitalize' and self.get_word_case(dest_token) == 'lower':
             return dest_token.capitalize()
@@ -105,14 +102,14 @@ class WordEmbsAug(WordAugmenter):
         if aug_idexes is None:
             return data
         aug_idexes.sort(reverse=True)
-        # print(aug_idexes)
+
         results[aug_idexes[0]], results[aug_idexes[1]] = \
                 results[aug_idexes[1]], results[aug_idexes[0]]
 
         return self.reverse_tokenizer(results)
 
     def delete(self, data):
-        tokens = self.tokenizer(data)
+        tokens = self.tokenize(data)
         results = tokens.copy()
 
         aug_idxes = self._get_random_aug_idxes(tokens)
