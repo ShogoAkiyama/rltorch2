@@ -3,34 +3,44 @@
 """
 import numpy as np
 from word_augment import WordAugmenter
-from utils.action import Action
+# from utils.action import Action
 # from model.word2vec import Word2vec
-from model.fasttext import Fasttext
-import utils.normalization as normalization
+# from model.fasttext import Fasttext
+# import utils.normalization as normalization
 
 
 WORD_EMBS_MODELS = {}
-model_types = ['word2vec', 'glove', 'fasttext']
+
+
+class Fasttext:
+    # https://arxiv.org/pdf/1712.09405.pdf,
+    def __init__(self, top_k=100, skip_check=False):
+        self.top_k = top_k
+        self.skip_check = skip_check
+        self.emb_size = 0
+        self.vocab_size = 0
+        self.embs = {}
+        self.vectors = []
+        self.normalized_vectors = None
 
 
 class WordEmbsAug(WordAugmenter):
     # https://aclweb.org/anthology/D15-1306, https://arxiv.org/pdf/1804.07998.pdf, https://arxiv.org/pdf/1509.01626.pdf
     # https://arxiv.org/ftp/arxiv/papers/1812/1812.04718.pdf
 
-    def __init__(self, model_type, model_path='.', model=None, action=Action.SUBSTITUTE,
-                 name='WordEmbs_Aug', aug_min=1, aug_max=10, aug_p=0.3, top_k=100, n_gram_separator='_',
-                 stopwords=None, tokenizer=None, reverse_tokenizer=None, force_reload=False, stopwords_regex=None,
-                 verbose=0):
+    def __init__(self, model_path='.', model=None, action='substitute',
+                 aug_min=1, aug_max=10, aug_p=0.3, top_k=100, n_gram_separator='_',
+                 stopwords=None, tokenizer=None, reverse_tokenizer=None, stopwords_regex=None):
         super().__init__(
-            action=action, name=name, aug_p=aug_p, aug_min=aug_min, aug_max=aug_max, stopwords=stopwords,
-            tokenizer=tokenizer, reverse_tokenizer=reverse_tokenizer, device='cpu', verbose=verbose,
+            action=action, aug_p=aug_p, aug_min=aug_min, aug_max=aug_max, stopwords=stopwords,
+            tokenizer=tokenizer, reverse_tokenizer=reverse_tokenizer, device='cpu',
             stopwords_regex=stopwords_regex)
 
         self.top_k = top_k
         self.model = model
         self.words = list(self.model.itos)
         self.normalized_vectors = \
-            normalization.standard_norm(self.model.vectors.numpy())
+            self.standard_norm(self.model.vectors.numpy())
 
     def skip_aug(self, token_idxes, tokens):
         results = []
@@ -44,10 +54,11 @@ class WordEmbsAug(WordAugmenter):
         return results
 
     def insert(self, data):
-        tokens = self.tokenizer(data)
+        tokens = self.tokenize(data)
         results = tokens.copy()
 
         aug_idexes = self._get_random_aug_idxes(tokens)
+
         if aug_idexes is None:
             return data
         aug_idexes.sort(reverse=True)
@@ -59,7 +70,7 @@ class WordEmbsAug(WordAugmenter):
         return self.reverse_tokenizer(results)
 
     def substitute(self, data):
-        tokens = self.tokenizer(data)
+        tokens = self.tokenize(data)
         results = tokens.copy()
 
         aug_idexes = self._get_aug_idxes(tokens)
@@ -72,6 +83,20 @@ class WordEmbsAug(WordAugmenter):
             substitute_word = self.sample(candidate_words, 1)[0]
 
             results[aug_idx] = substitute_word
+
+        return self.reverse_tokenizer(results)
+
+    def swap(self, data):
+        tokens = self.tokenize(data)
+        results = tokens.copy()
+
+        aug_idexes = self._get_random_aug_idxes(tokens)
+        if aug_idexes is None:
+            return data
+        aug_idexes.sort(reverse=True)
+        # print(aug_idexes)
+        results[aug_idexes[0]], results[aug_idexes[1]] = \
+                results[aug_idexes[1]], results[aug_idexes[0]]
 
         return self.reverse_tokenizer(results)
 
@@ -98,3 +123,9 @@ class WordEmbsAug(WordAugmenter):
             idx != source_id and self.idx2word(idx).lower() != word.lower()]
 
         return target_words[:self.top_k]
+
+    def standard_norm(self, data):
+        means = data.mean(axis =1)
+        stds = data.std(axis= 1, ddof=1)
+        data = (data - means[:, np.newaxis]) / stds[:, np.newaxis]
+        return np.nan_to_num(data)

@@ -2,34 +2,21 @@ import random
 import numpy as np
 from multiprocessing.dummy import Pool as ThreadPool
 
-from utils.method import Method
-from utils.action import Action
+# from utils.method import Method
+# from utils.action import Action
 
 # from nlpaug.util import WarningException, WarningName, WarningCode, WarningMessage
 
 
 class Augmenter:
-    def __init__(self, name, method, action, aug_min, aug_max, aug_p=0.1, device='cpu', verbose=0):
-        self.name = name
+    def __init__(self, method, action, aug_min, aug_max, aug_p=0.1, device='cpu'):
+        # self.name = name
         self.action = action
         self.method = method
         self.aug_min = aug_min
         self.aug_max = aug_max
         self.aug_p = aug_p
         self.device = device
-        self.verbose = verbose
-
-        self._validate_augmenter(method, action)
-
-    @classmethod
-    def _validate_augmenter(cls, method, action):
-        if method not in Method.getall():
-            raise ValueError(
-                'Method must be one of {} while {} is passed'.format(Method.getall(), method))
-
-        if action not in Action.getall():
-            raise ValueError(
-                'Action must be one of {} while {} is passed'.format(Action.getall(), action))
 
     def augment(self, data, n=1, num_thread=1):
         """
@@ -47,15 +34,15 @@ class Augmenter:
         results = []
         action_fx = None
         clean_data = self.clean(data)
-        if self.action == Action.INSERT:
+        if self.action == 'insert':
             action_fx = self.insert
-        elif self.action == Action.SUBSTITUTE:
+        elif self.action == 'substitute':
             action_fx = self.substitute
-        elif self.action == Action.SWAP:
+        elif self.action == 'swap':
             action_fx = self.swap
-        elif self.action == Action.DELETE:
+        elif self.action == 'delete':
             action_fx = self.delete
-        elif self.action == Action.SPLIT:
+        elif self.action == 'split':
             action_fx = self.split
 
         for _ in range(max_retry_times+1):
@@ -114,13 +101,13 @@ class Augmenter:
 
         return augmented_results
 
-    @classmethod
-    def _validate_augment(cls, data):
-        if data is None or len(data) == 0:
-            return [WarningException(name=WarningName.INPUT_VALIDATION_WARNING,
-                                     code=WarningCode.WARNING_CODE_001, msg=WarningMessage.LENGTH_IS_ZERO)]
+    # @classmethod
+    # def _validate_augment(cls, data):
+    #     if data is None or len(data) == 0:
+    #         return [WarningException(name=WarningName.INPUT_VALIDATION_WARNING,
+    #                                  code=WarningCode.WARNING_CODE_001, msg=WarningMessage.LENGTH_IS_ZERO)]
 
-        return []
+    #     return []
 
     @classmethod
     def _parallel_augment(cls, action_fx, data, n, num_thread=2):
@@ -137,27 +124,6 @@ class Augmenter:
         pool.close()
         pool.join()
         return results
-
-    def insert(self, data):
-        raise NotImplementedError
-
-    def substitute(self, data):
-        raise NotImplementedError
-
-    def swap(self, data):
-        raise NotImplementedError
-
-    def delete(self, data):
-        raise NotImplementedError
-
-    def split(self, data):
-        raise NotImplementedError
-
-    def tokenizer(self, tokens):
-        raise NotImplementedError
-
-    def evaluate(self):
-        raise NotImplementedError
 
     @classmethod
     def is_duplicate(cls, dataset, data):
@@ -178,23 +144,20 @@ class Augmenter:
     def clean(cls, data):
         raise NotImplementedError
 
-    def _generate_aug_cnt(self, size, aug_min, aug_max, aug_p=None):
+    def generate_aug_cnt(self, size, aug_p=None):
         if aug_p is not None:
-            percent = aug_p
+               percent = aug_p
         elif self.aug_p is not None:
             percent = self.aug_p
         else:
             percent = 0.3
         cnt = int(percent * size)
 
-        if cnt < aug_min:
-            return aug_min
-        if aug_max is not None and cnt > aug_max:
-            return aug_max
+        if cnt < self.aug_min:
+            return self.aug_min
+        if self.aug_max is not None and cnt > self.aug_max:
+            return self.aug_max
         return cnt
-
-    def generate_aug_cnt(self, size, aug_p=None):
-        return self._generate_aug_cnt(size, self.aug_min, self.aug_max, aug_p)
 
     def generate_aug_idxes(self, inputs):
         aug_cnt = self.generate_aug_cnt(len(inputs))
@@ -202,5 +165,5 @@ class Augmenter:
         aug_idxes = self.sample(token_idxes, aug_cnt)
         return aug_idxes
 
-    def __str__(self):
-        return 'Name:{}, Action:{}, Method:{}'.format(self.name, self.action, self.method)
+    # def __str__(self):
+    #     return 'Name:{}, Action:{}, Method:{}'.format(self.name, self.action, self.method)

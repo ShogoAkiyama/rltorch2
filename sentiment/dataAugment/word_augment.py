@@ -1,29 +1,28 @@
 import string
 import re
+import MeCab
 
-from utils.method import Method
+# from utils.method import Method
 from base_augment import Augmenter
 # from nlpaug.util import WarningException, WarningName, WarningCode, WarningMessage
 
 
 class WordAugmenter(Augmenter):
-    TOKENIZER_REGEX = re.compile(r'(\W)')
+    # TOKENIZER_REGEX = re.compile(r'(\W)')
 
-    def __init__(self, action, name='Word_Aug', aug_min=1, aug_max=10, aug_p=0.3, stopwords=None,
-                 tokenizer=None, reverse_tokenizer=None, device='cpu', verbose=0, stopwords_regex=None):
+    def __init__(self, action, aug_min=1, aug_max=10, aug_p=0.3, stopwords=None,
+                 tokenizer=None, reverse_tokenizer=None, device='cpu', stopwords_regex=None):
         super().__init__(
-            name=name, method=Method.WORD, action=action, aug_min=aug_min, aug_max=aug_max, device=device,
-            verbose=verbose)
+            method='word', action=action, aug_min=aug_min, aug_max=aug_max, device=device)
         self.aug_p = aug_p
-        self.tokenizer = tokenizer or self._tokenizer
+        self.tokenizer = MeCab.Tagger("-d /usr/lib/x86_64-linux-gnu/mecab/dic/mecab-ipadic-neologd \
+                                       -u ../mydict/mydict.dic")
         self.reverse_tokenizer = reverse_tokenizer or self._reverse_tokenizer
         self.stopwords = stopwords
         self.stopwords_regex = re.compile(stopwords_regex) if stopwords_regex is not None else stopwords_regex
 
-    @classmethod
-    def _tokenizer(cls, text):
-        tokens = cls.TOKENIZER_REGEX.split(text)
-        return [t for t in tokens if len(t.strip()) > 0]
+    def tokenize(self, text):
+        return text.split()
 
     @classmethod
     def _reverse_tokenizer(cls, tokens):
