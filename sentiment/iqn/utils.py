@@ -104,10 +104,10 @@ class MyDataset(torch.utils.data.Dataset):
             tok for tok in [self.unk_token, self.pad_token, self.init_token,
                             self.eos_token] + self.specials
             if tok is not None))
-        self.vocab = Vocab(self.counter, 
-                                           specials=specials, 
-                                           vectors=vectors, 
-                                           min_freq=min_freq) 
+        self.vocab = Vocab(self.counter,
+                           specials=specials, 
+                           vectors=vectors, 
+                           min_freq=min_freq) 
         self.padded_list = self.pad(self.data_list)
         self.tensor_list = self.numericalize(self.padded_list)
 
