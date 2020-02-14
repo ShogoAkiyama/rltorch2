@@ -42,6 +42,14 @@ class WordEmbsAug(WordAugmenter):
         self.normalized_vectors = \
             self.standard_norm(self.model.vectors.numpy())
 
+    def tokenizer(self, data):
+        return data.split(' ')
+
+    def align_capitalization(self, src_token, dest_token):
+        if self.get_word_case(src_token) == 'capitalize' and self.get_word_case(dest_token) == 'lower':
+            return dest_token.capitalize()
+        return dest_token
+
     def skip_aug(self, token_idxes, tokens):
         results = []
         for token_idx in token_idxes:
@@ -89,6 +97,9 @@ class WordEmbsAug(WordAugmenter):
     def swap(self, data):
         tokens = self.tokenize(data)
         results = tokens.copy()
+    
+        if len(tokens) < 2:
+            return data
 
         aug_idexes = self._get_random_aug_idxes(tokens)
         if aug_idexes is None:
@@ -100,14 +111,24 @@ class WordEmbsAug(WordAugmenter):
 
         return self.reverse_tokenizer(results)
 
-    def word2idx(self, word):
-        return self.model.stoi[word]
+    def delete(self, data):
+        tokens = self.tokenizer(data)
+        results = tokens.copy()
 
-    def word2vector(self, word):
-        return self.model.vectors[self.word2idx(word)]
+        aug_idxes = self._get_random_aug_idxes(tokens)
+        aug_idxes.sort(reverse=True)
 
-    def idx2word(self, idx):
-        return self.model.itos[idx]
+        # https://github.com/makcedward/nlpaug/issues/76
+        if len(tokens) < 2:
+            return data
+
+        for aug_idx in aug_idxes:
+            original_token = results[aug_idx]
+            del results[aug_idx]
+            if aug_idx == 0:
+                results[0] = self.align_capitalization(original_token, results[0])
+
+        return self.reverse_tokenizer(results)
 
     def predict(self, word, n=1):
         # 単語のベクトル

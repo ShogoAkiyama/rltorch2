@@ -25,8 +25,16 @@ japanese_vectors = Vectors(name='../data/news/cc.ja.300.vec')
 # print("Augmented Text:")
 # print(augmented_text)
 
-# """ swap """
+""" swap """
 aug = WordEmbsAug(model=japanese_vectors, action='swap', stopwords=['<cls>', '<eos>', '<sep>'])
 augmented_text = aug.augment(text)
-print("Augmented Text:")
+print("Substitute Text:")
 print(augmented_text)
+
+
+""" delete """
+aug = WordEmbsAug(model=japanese_vectors, model_type='fasttext', action='delete')
+augmented_text = aug.augment(text)
+print("Delete Text:")
+print(augmented_text)
+

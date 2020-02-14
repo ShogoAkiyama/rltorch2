@@ -28,13 +28,6 @@ class WordAugmenter(Augmenter):
     def _reverse_tokenizer(cls, tokens):
         return ' '.join(tokens)
 
-    @classmethod
-    def clean(cls, data):
-        return data.strip()
-
-    def skip_aug(self, token_idxes, tokens):
-        return token_idxes
-
     def pre_skip_aug(self, tokens, tuple_idx=None):
         results = []
         for token_idx, token in enumerate(tokens):
@@ -69,11 +62,6 @@ class WordAugmenter(Augmenter):
             if d == data:
                 return True
         return False
-
-    def align_capitalization(self, src_token, dest_token):
-        if self.get_word_case(src_token) == 'capitalize' and self.get_word_case(dest_token) == 'lower':
-            return dest_token.capitalize()
-        return dest_token
 
     def _get_aug_idxes(self, tokens):
         aug_cnt = self.generate_aug_cnt(len(tokens))
@@ -160,3 +148,22 @@ class WordAugmenter(Augmenter):
             tokens[swap_word_idx] = 'I'
 
         return tokens
+
+    def word2idx(self, word):
+        return self.model.stoi[word]
+
+    def word2vector(self, word):
+        return self.model.vectors[self.word2idx(word)]
+
+    def idx2word(self, idx):
+        return self.model.itos[idx]
+
+    def _get_swap_position(self, pos, token_length):
+        if pos == 0:
+            # Force swap with next character if it is first character
+            return pos + 1
+        elif pos == token_length:
+            # Force swap with previous character if it is last character
+            return pos - 1
+        else:
+            return pos + self.sample([-1, 1], 1)[0]

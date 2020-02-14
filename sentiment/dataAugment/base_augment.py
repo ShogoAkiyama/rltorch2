@@ -5,9 +5,6 @@ from multiprocessing.dummy import Pool as ThreadPool
 # from utils.method import Method
 # from utils.action import Action
 
-# from nlpaug.util import WarningException, WarningName, WarningCode, WarningMessage
-
-
 class Augmenter:
     def __init__(self, method, action, aug_min, aug_max, aug_p=0.1, device='cpu'):
         # self.name = name
@@ -19,22 +16,18 @@ class Augmenter:
         self.device = device
 
     def augment(self, data, n=1, num_thread=1):
-        """
-        :param object data: Data for augmentation
-        :param int n: Number of unique augmented output
-        :param int num_thread: Number of thread for data augmentation. Use this option when you are using CPU and
-            n is larger than 1
-        :return: Augmented data
-
-        >>> augmented_data = aug.augment(data)
-
-        """
-        max_retry_times = 3  # max loop times of n to generate expected number of outputs
+        max_retry_times = 1  # max loop times of n to generate expected number of outputs
 
         results = []
         action_fx = None
+<<<<<<< HEAD
         clean_data = self.clean(data)
         if self.action == 'insert':
+=======
+        # clean_data = self.clean(data)
+        clean_data = data
+        if self.action == Action.INSERT:
+>>>>>>> 488c34e86c712194a41de1667da21993c8a3d36a
             action_fx = self.insert
         elif self.action == 'substitute':
             action_fx = self.substitute
@@ -75,16 +68,6 @@ class Augmenter:
         return results[:n]
 
     def augments(self, data, n=1, num_thread=1):
-        """
-        :param list data: List of data
-        :param int n: Number of unique augmented output
-        :param int num_thread: Number of thread for data augmentation. Use this option when you are using CPU and
-            n is larger than 1. Do NOT support GPU process.
-        :return: Augmented data (Does not follow original order)
-
-        >>> augmented_data = aug.augment(data)
-
-        """
         augmented_results = []
         if num_thread == 1 or self.device == 'cuda':
             for d in data:
@@ -100,14 +83,6 @@ class Augmenter:
                     augmented_results.extend(self._parallel_augments(self.augment, mini_batch_data))
 
         return augmented_results
-
-    # @classmethod
-    # def _validate_augment(cls, data):
-    #     if data is None or len(data) == 0:
-    #         return [WarningException(name=WarningName.INPUT_VALIDATION_WARNING,
-    #                                  code=WarningCode.WARNING_CODE_001, msg=WarningMessage.LENGTH_IS_ZERO)]
-
-    #     return []
 
     @classmethod
     def _parallel_augment(cls, action_fx, data, n, num_thread=2):
