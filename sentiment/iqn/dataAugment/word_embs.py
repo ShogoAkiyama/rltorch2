@@ -43,7 +43,7 @@ class WordEmbsAug(WordAugmenter):
 
     def substitute(self, data):
         # tokens = self.tokenize(data)
-        tokens = data
+        tokens = data.copy()
         results = tokens
 
         aug_idexes = self._get_random_aug_idxes(tokens)
@@ -52,19 +52,20 @@ class WordEmbsAug(WordAugmenter):
             return data
 
         for aug_idx in aug_idexes:
-            original_word = results[aug_idx].item()
+            original_word = results[aug_idx]
             candidate_words = self.predict(original_word, n=1)
 
             substitute_word = self.sample(candidate_words, 1)[0]
 
-            results[aug_idx] = torch.LongTensor([substitute_word])
+            results[aug_idx] = substitute_word
 
         # return self.reverse_tokenizer(results)
         return results
 
     def swap(self, data):
         # tokens = self.tokenize(data)
-        tokens = data
+        tokens = data.copy()
+
         results = tokens
     
         if len(tokens) < 2:
@@ -118,4 +119,3 @@ class Fasttext:
         self.embs = {}
         self.vectors = []
         self.normalized_vectors = None
-

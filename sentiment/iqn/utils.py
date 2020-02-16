@@ -71,7 +71,7 @@ class MyDataset(torch.utils.data.Dataset):
                  min_freq=10, specials=[], phase='val'):
         self.keys = ['Date', 'Code', 'State', 'Next_State', 'Reward']
         self.string_keys = ['State', 'Next_State']
-        self.tensor_keys = ['Reward'] + self.string_keys
+        self.tensor_keys = ['Reward'] + ['Next_State']   #self.string_keys
         self.data_list = {k: [] for k in self.keys}
         
         with io.open(os.path.expanduser(path), encoding="utf8") as f:
@@ -138,7 +138,12 @@ class MyDataset(torch.utils.data.Dataset):
                 arr = []
                 for ex in val:
                     arr.append([self.vocab.stoi[x] for x in ex])
-                tensor[key] = torch.LongTensor(arr).to('cpu')
+
+                if key == 'State':
+                    tensor[key] = arr
+                else:
+                    tensor[key] = torch.LongTensor(arr).to('cpu')
+
             elif key in self.tensor_keys:
                 tensor[key] = torch.FloatTensor(val).to('cpu')
             else:                
@@ -153,8 +158,9 @@ class MyDataset(torch.utils.data.Dataset):
         arr = {k: [] for k in self.keys}
         for key in self.keys:
             data = self.tensor_list[key][i]
+
             if key == 'State':
-                data = self.transform(data, self.phase)
+                data = torch.LongTensor(self.transform(data, self.phase))
 
             arr[key] = data
 

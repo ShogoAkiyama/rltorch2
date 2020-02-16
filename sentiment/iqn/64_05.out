@@ -1,0 +1,1368 @@
+/home/ts-zemi/anaconda3/lib/python3.7/site-packages/torch/optim/lr_scheduler.py:122: UserWarning: Detected call of `lr_scheduler.step()` before `optimizer.step()`. In PyTorch 1.1.0 and later, you should call them in the opposite order: `optimizer.step()` before `lr_scheduler.step()`.  Failure to do this will result in PyTorch skipping the first value of the learning rate schedule. See more details at https://pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate
+  "https://pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate", UserWarning)
+epoch:  1  loss: 15103.213
+epoch:  2  loss: 14999.816
+epoch:  3  loss: 15002.404
+epoch:  4  loss: 14144.871
+epoch:  5  loss: 12550.561
+epoch:  6  loss: 11962.071
+epoch:  7  loss: 11784.135
+epoch:  8  loss: 11755.734
+epoch:  9  loss: 11660.151
+2.4992660218454526e-05
+                     train_reward:  1320.12832570076
+epoch:  10  loss: 11626.485
+epoch:  11  loss: 11655.308
+epoch:  12  loss: 11676.164
+epoch:  13  loss: 11633.228
+epoch:  14  loss: 11815.127
+epoch:  15  loss: 11572.743
+epoch:  16  loss: 11572.834
+epoch:  17  loss: 11584.717
+epoch:  18  loss: 11573.121
+epoch:  19  loss: 11554.847
+2.4972930126144363e-05
+                     train_reward:  1544.351865708828
+epoch:  20  loss: 11567.847
+epoch:  21  loss: 11528.511
+epoch:  22  loss: 11552.223
+epoch:  23  loss: 11529.168
+epoch:  24  loss: 11585.805
+epoch:  25  loss: 11586.532
+epoch:  26  loss: 11548.702
+epoch:  27  loss: 11608.569
+epoch:  28  loss: 11601.808
+epoch:  29  loss: 11635.072
+2.4940890879408535e-05
+                     train_reward:  1661.0078877210617
+epoch:  30  loss: 11554.825
+epoch:  31  loss: 11586.133
+epoch:  32  loss: 11571.483
+epoch:  33  loss: 11562.697
+epoch:  34  loss: 11625.288
+epoch:  35  loss: 11587.955
+epoch:  36  loss: 11544.877
+epoch:  37  loss: 11694.695
+epoch:  38  loss: 11527.877
+epoch:  39  loss: 11725.317
+2.48965740971064e-05
+                     train_reward:  1770.0238707065582
+epoch:  40  loss: 11605.044
+epoch:  41  loss: 11538.512
+epoch:  42  loss: 11608.769
+epoch:  43  loss: 11550.892
+epoch:  44  loss: 11614.411
+epoch:  45  loss: 11568.944
+epoch:  46  loss: 11548.688
+epoch:  47  loss: 11543.504
+epoch:  48  loss: 11544.657
+epoch:  49  loss: 11609.322
+2.4840023514542577e-05
+                     train_reward:  1631.5588454008102
+epoch:  50  loss: 11548.367
+epoch:  51  loss: 11554.718
+epoch:  52  loss: 11530.451
+epoch:  53  loss: 11532.917
+epoch:  54  loss: 11539.067
+epoch:  55  loss: 11526.775
+epoch:  56  loss: 11571.900
+epoch:  57  loss: 11513.328
+epoch:  58  loss: 11531.576
+epoch:  59  loss: 11564.302
+2.4771294940305547e-05
+                     train_reward:  1328.7042679786682
+epoch:  60  loss: 11532.829
+epoch:  61  loss: 11523.353
+epoch:  62  loss: 11536.592
+epoch:  63  loss: 11561.198
+epoch:  64  loss: 11572.863
+epoch:  65  loss: 11549.704
+epoch:  66  loss: 11580.744
+epoch:  67  loss: 11570.018
+epoch:  68  loss: 11571.289
+epoch:  69  loss: 11546.978
+2.4690456201191202e-05
+                     train_reward:  1549.1507900953293
+epoch:  70  loss: 11534.594
+epoch:  71  loss: 11522.945
+epoch:  72  loss: 11557.439
+epoch:  73  loss: 11511.157
+epoch:  74  loss: 11560.328
+epoch:  75  loss: 11529.972
+epoch:  76  loss: 11531.664
+epoch:  77  loss: 11522.601
+epoch:  78  loss: 11514.433
+epoch:  79  loss: 11584.070
+2.4597587075266102e-05
+                     train_reward:  1601.2977538108826
+epoch:  80  loss: 11510.546
+epoch:  81  loss: 11509.828
+epoch:  82  loss: 11552.212
+epoch:  83  loss: 11533.333
+epoch:  84  loss: 11508.777
+epoch:  85  loss: 11518.675
+epoch:  86  loss: 11524.199
+epoch:  87  loss: 11511.229
+epoch:  88  loss: 11525.351
+epoch:  89  loss: 11493.482
+2.4492779213136047e-05
+                     train_reward:  1626.448593556881
+epoch:  90  loss: 11535.965
+epoch:  91  loss: 11543.354
+epoch:  92  loss: 11498.275
+epoch:  93  loss: 11501.414
+epoch:  94  loss: 11540.794
+epoch:  95  loss: 11513.004
+epoch:  96  loss: 11524.949
+epoch:  97  loss: 11541.977
+epoch:  98  loss: 11507.557
+epoch:  99  loss: 11557.835
+2.4376136047498007e-05
+                     train_reward:  1553.8597819805145
+epoch:  100  loss: 11556.185
+epoch:  101  loss: 13180.901
+epoch:  102  loss: 13174.301
+epoch:  103  loss: 13119.826
+epoch:  104  loss: 13104.156
+epoch:  105  loss: 13141.567
+epoch:  106  loss: 13139.508
+epoch:  107  loss: 13083.117
+epoch:  108  loss: 13086.188
+epoch:  109  loss: 13122.369
+2.424777269106456e-05
+                     train_reward:  1862.5505340099335
+epoch:  110  loss: 13129.199
+epoch:  111  loss: 13115.095
+epoch:  112  loss: 13222.499
+epoch:  113  loss: 13116.132
+epoch:  114  loss: 13107.838
+epoch:  115  loss: 13140.525
+epoch:  116  loss: 13186.994
+epoch:  117  loss: 13128.479
+epoch:  118  loss: 13121.964
+epoch:  119  loss: 13081.053
+2.410781582296151e-05
+                     train_reward:  1997.3103374242783
+epoch:  120  loss: 13103.475
+epoch:  121  loss: 13151.495
+epoch:  122  loss: 13151.661
+epoch:  123  loss: 13108.465
+epoch:  124  loss: 13109.061
+epoch:  125  loss: 13133.549
+epoch:  126  loss: 13108.852
+epoch:  127  loss: 13095.353
+epoch:  128  loss: 13122.691
+epoch:  129  loss: 13113.522
+2.3956403563710853e-05
+                     train_reward:  1760.9254655838013
+epoch:  130  loss: 13127.555
+epoch:  131  loss: 13125.690
+epoch:  132  loss: 13124.165
+epoch:  133  loss: 13139.018
+epoch:  134  loss: 13176.507
+epoch:  135  loss: 13065.398
+epoch:  136  loss: 13083.295
+epoch:  137  loss: 13220.460
+epoch:  138  loss: 13141.020
+epoch:  139  loss: 13127.032
+2.379368533892253e-05
+                     train_reward:  1966.170212984085
+epoch:  140  loss: 13090.683
+epoch:  141  loss: 13107.102
+epoch:  142  loss: 13107.162
+epoch:  143  loss: 13137.694
+epoch:  144  loss: 13103.731
+epoch:  145  loss: 13130.050
+epoch:  146  loss: 13142.294
+epoch:  147  loss: 13137.082
+epoch:  148  loss: 13171.416
+epoch:  149  loss: 13121.863
+2.361982173182934e-05
+                     train_reward:  1810.3250234127045
+epoch:  150  loss: 13140.095
+epoch:  151  loss: 13148.945
+epoch:  152  loss: 13128.326
+epoch:  153  loss: 13121.888
+epoch:  154  loss: 13094.829
+epoch:  155  loss: 13114.246
+epoch:  156  loss: 13105.067
+epoch:  157  loss: 13154.583
+epoch:  158  loss: 13138.517
+epoch:  159  loss: 13087.996
+2.343498432481069e-05
+                     train_reward:  1687.836016178131
+epoch:  160  loss: 13123.817
+epoch:  161  loss: 13140.036
+epoch:  162  loss: 13145.148
+epoch:  163  loss: 13272.608
+epoch:  164  loss: 13162.516
+epoch:  165  loss: 13206.680
+epoch:  166  loss: 13137.588
+epoch:  167  loss: 13112.075
+epoch:  168  loss: 13110.271
+epoch:  169  loss: 13145.083
+2.3239355530061475e-05
+                     train_reward:  1842.8639342784882
+epoch:  170  loss: 13074.890
+epoch:  171  loss: 13118.206
+epoch:  172  loss: 13056.495
+epoch:  173  loss: 13126.783
+epoch:  174  loss: 13169.717
+epoch:  175  loss: 13131.684
+epoch:  176  loss: 13119.925
+epoch:  177  loss: 13137.209
+epoch:  178  loss: 13074.852
+epoch:  179  loss: 13133.783
+2.3033128409573256e-05
+                     train_reward:  1817.1417083740234
+epoch:  180  loss: 13114.183
+epoch:  181  loss: 13123.990
+epoch:  182  loss: 13128.687
+epoch:  183  loss: 13109.159
+epoch:  184  loss: 13082.210
+epoch:  185  loss: 13110.988
+epoch:  186  loss: 13134.545
+epoch:  187  loss: 13100.369
+epoch:  188  loss: 13094.968
+epoch:  189  loss: 13090.829
+2.2816506484605368e-05
+                     train_reward:  1618.3983550071716
+epoch:  190  loss: 13095.944
+epoch:  191  loss: 13121.003
+epoch:  192  loss: 13139.695
+epoch:  193  loss: 13107.486
+epoch:  194  loss: 13104.454
+epoch:  195  loss: 13101.510
+epoch:  196  loss: 13177.805
+epoch:  197  loss: 13077.869
+epoch:  198  loss: 13177.768
+epoch:  199  loss: 13123.521
+2.258970353483401e-05
+                     train_reward:  2164.713928103447
+epoch:  200  loss: 13105.084
+epoch:  201  loss: 13664.698
+epoch:  202  loss: 13645.266
+epoch:  203  loss: 13676.824
+epoch:  204  loss: 13743.044
+epoch:  205  loss: 13675.320
+epoch:  206  loss: 13729.830
+epoch:  207  loss: 13643.406
+epoch:  208  loss: 13688.168
+epoch:  209  loss: 13609.150
+2.2352943387377466e-05
+                     train_reward:  2055.8672820329666
+epoch:  210  loss: 13673.595
+epoch:  211  loss: 13784.132
+epoch:  212  loss: 13680.528
+epoch:  213  loss: 13656.310
+epoch:  214  loss: 13652.283
+epoch:  215  loss: 13665.431
+epoch:  216  loss: 13670.228
+epoch:  217  loss: 13758.056
+epoch:  218  loss: 13686.670
+epoch:  219  loss: 13662.440
+2.2106459695905763e-05
+                     train_reward:  2035.133772969246
+epoch:  220  loss: 13666.258
+epoch:  221  loss: 13715.419
+epoch:  222  loss: 13678.028
+epoch:  223  loss: 13654.280
+epoch:  224  loss: 13668.755
+epoch:  225  loss: 13663.816
+epoch:  226  loss: 13666.136
+epoch:  227  loss: 13721.895
+epoch:  228  loss: 13710.594
+epoch:  229  loss: 13642.562
+2.1850495710052727e-05
+                     train_reward:  1962.520905971527
+epoch:  230  loss: 13658.341
+epoch:  231  loss: 13650.043
+epoch:  232  loss: 13629.059
+epoch:  233  loss: 13688.258
+epoch:  234  loss: 13697.238
+epoch:  235  loss: 13654.740
+epoch:  236  loss: 13732.059
+epoch:  237  loss: 13943.677
+epoch:  238  loss: 13654.065
+epoch:  239  loss: 13726.260
+2.158530403535787e-05
+                     train_reward:  2117.360097885132
+epoch:  240  loss: 13657.048
+epoch:  241  loss: 13644.576
+epoch:  242  loss: 13695.411
+epoch:  243  loss: 13637.238
+epoch:  244  loss: 13704.205
+epoch:  245  loss: 13690.386
+epoch:  246  loss: 13693.546
+epoch:  247  loss: 13687.249
+epoch:  248  loss: 13628.292
+epoch:  249  loss: 13647.097
+2.1311146383975274e-05
+                     train_reward:  1999.712867975235
+epoch:  250  loss: 13695.679
+epoch:  251  loss: 13680.736
+epoch:  252  loss: 13665.408
+epoch:  253  loss: 13659.881
+epoch:  254  loss: 13638.701
+epoch:  255  loss: 13713.853
+epoch:  256  loss: 13699.148
+epoch:  257  loss: 13651.505
+epoch:  258  loss: 13691.529
+epoch:  259  loss: 13660.688
+2.1028293316395206e-05
+                     train_reward:  2041.5326488018036
+epoch:  260  loss: 13643.397
+epoch:  261  loss: 13650.831
+epoch:  262  loss: 13640.365
+epoch:  263  loss: 13696.172
+epoch:  264  loss: 13673.253
+epoch:  265  loss: 13680.806
+epoch:  266  loss: 13654.559
+epoch:  267  loss: 13710.287
+epoch:  268  loss: 13651.690
+epoch:  269  loss: 13682.057
+2.0737023974433615e-05
+                     train_reward:  1919.8203556537628
+epoch:  270  loss: 13640.723
+epoch:  271  loss: 13647.842
+epoch:  272  loss: 13648.086
+epoch:  273  loss: 13662.340
+epoch:  274  loss: 13679.976
+epoch:  275  loss: 13659.698
+epoch:  276  loss: 13655.517
+epoch:  277  loss: 13625.186
+epoch:  278  loss: 13649.384
+epoch:  279  loss: 13630.215
+2.0437625805752818e-05
+                     train_reward:  2127.7156524658203
+epoch:  280  loss: 13648.922
+epoch:  281  loss: 13664.219
+epoch:  282  loss: 13643.754
+epoch:  283  loss: 13653.552
+epoch:  284  loss: 13681.891
+epoch:  285  loss: 13649.263
+epoch:  286  loss: 13679.004
+epoch:  287  loss: 13648.838
+epoch:  288  loss: 13673.928
+epoch:  289  loss: 13644.355
+2.0130394280185295e-05
+                     train_reward:  1817.9670485258102
+epoch:  290  loss: 13652.123
+epoch:  291  loss: 13754.057
+epoch:  292  loss: 13660.076
+epoch:  293  loss: 13658.238
+epoch:  294  loss: 13669.034
+epoch:  295  loss: 13638.095
+epoch:  296  loss: 13624.816
+epoch:  297  loss: 13692.827
+epoch:  298  loss: 13649.643
+epoch:  299  loss: 13722.799
+1.981563259814068e-05
+                     train_reward:  2031.6297045946121
+epoch:  300  loss: 13670.615
+epoch:  301  loss: 13787.218
+epoch:  302  loss: 13817.793
+epoch:  303  loss: 13799.626
+epoch:  304  loss: 13805.541
+epoch:  305  loss: 13769.560
+epoch:  306  loss: 13861.315
+epoch:  307  loss: 13829.312
+epoch:  308  loss: 13792.656
+epoch:  309  loss: 13752.462
+1.9493651391383488e-05
+                     train_reward:  2091.7981095314026
+epoch:  310  loss: 13859.883
+epoch:  311  loss: 13774.598
+epoch:  312  loss: 13867.253
+epoch:  313  loss: 13765.007
+epoch:  314  loss: 13776.150
+epoch:  315  loss: 13851.276
+epoch:  316  loss: 13791.188
+epoch:  317  loss: 13797.623
+epoch:  318  loss: 13949.221
+epoch:  319  loss: 13822.050
+1.916476841647705e-05
+                     train_reward:  1848.3826930522919
+epoch:  320  loss: 13763.449
+epoch:  321  loss: 13861.230
+epoch:  322  loss: 13770.351
+epoch:  323  loss: 13769.887
+epoch:  324  loss: 13771.829
+epoch:  325  loss: 13788.735
+epoch:  326  loss: 13776.061
+epoch:  327  loss: 13944.746
+epoch:  328  loss: 13790.686
+epoch:  329  loss: 13968.457
+1.8829308241196113e-05
+                     train_reward:  2156.7400727272034
+epoch:  330  loss: 13806.996
+epoch:  331  loss: 13783.553
+epoch:  332  loss: 13822.242
+epoch:  333  loss: 13735.367
+epoch:  334  loss: 13778.752
+epoch:  335  loss: 13783.500
+epoch:  336  loss: 13750.789
+epoch:  337  loss: 13766.763
+epoch:  338  loss: 13794.881
+epoch:  339  loss: 13815.001
+1.8487601924217586e-05
+                     train_reward:  2115.8224668502808
+epoch:  340  loss: 13835.551
+epoch:  341  loss: 13786.195
+epoch:  342  loss: 13767.764
+epoch:  343  loss: 13783.764
+epoch:  344  loss: 13781.997
+epoch:  345  loss: 13794.496
+epoch:  346  loss: 13781.552
+epoch:  347  loss: 13843.008
+epoch:  348  loss: 13776.041
+epoch:  349  loss: 13767.779
+1.8139986688405585e-05
+                     train_reward:  2160.095100402832
+epoch:  350  loss: 13790.168
+epoch:  351  loss: 13779.285
+epoch:  352  loss: 13813.086
+epoch:  353  loss: 13787.299
+epoch:  354  loss: 13905.923
+epoch:  355  loss: 13770.190
+epoch:  356  loss: 13899.905
+epoch:  357  loss: 13787.264
+epoch:  358  loss: 13757.539
+epoch:  359  loss: 13763.044
+1.7786805588013095e-05
+                     train_reward:  2136.8509669303894
+epoch:  360  loss: 13781.294
+epoch:  361  loss: 13783.033
+epoch:  362  loss: 13772.219
+epoch:  363  loss: 13759.959
+epoch:  364  loss: 13740.399
+epoch:  365  loss: 13775.675
+epoch:  366  loss: 13794.661
+epoch:  367  loss: 13758.086
+epoch:  368  loss: 13770.859
+epoch:  369  loss: 13807.420
+1.742840717012883e-05
+                     train_reward:  2137.236639738083
+epoch:  370  loss: 13784.223
+epoch:  371  loss: 13769.221
+epoch:  372  loss: 13759.430
+epoch:  373  loss: 13815.974
+epoch:  374  loss: 13784.097
+epoch:  375  loss: 13767.592
+epoch:  376  loss: 13768.721
+epoch:  377  loss: 13777.174
+epoch:  378  loss: 13777.092
+epoch:  379  loss: 13809.139
+1.706514513070325e-05
+                     train_reward:  2163.1994928121567
+epoch:  380  loss: 13796.725
+epoch:  381  loss: 13797.134
+epoch:  382  loss: 13827.662
+epoch:  383  loss: 13868.678
+epoch:  384  loss: 13791.530
+epoch:  385  loss: 13794.839
+epoch:  386  loss: 13810.181
+epoch:  387  loss: 13791.477
+epoch:  388  loss: 13798.729
+epoch:  389  loss: 13770.867
+1.6697377965493376e-05
+                     train_reward:  2180.2375477552414
+epoch:  390  loss: 13754.630
+epoch:  391  loss: 13776.728
+epoch:  392  loss: 13748.123
+epoch:  393  loss: 13790.551
+epoch:  394  loss: 13763.624
+epoch:  395  loss: 13788.315
+epoch:  396  loss: 13804.278
+epoch:  397  loss: 13770.222
+epoch:  398  loss: 13741.949
+epoch:  399  loss: 13819.210
+1.632546861627059e-05
+                     train_reward:  2286.058193922043
+epoch:  400  loss: 13787.983
+epoch:  401  loss: 13775.969
+epoch:  402  loss: 13803.387
+epoch:  403  loss: 13794.854
+epoch:  404  loss: 13807.186
+epoch:  405  loss: 13771.233
+epoch:  406  loss: 13750.850
+epoch:  407  loss: 13816.091
+epoch:  408  loss: 13935.754
+epoch:  409  loss: 13793.424
+1.594978411264098e-05
+                     train_reward:  2258.192461848259
+epoch:  410  loss: 13855.116
+epoch:  411  loss: 13747.128
+epoch:  412  loss: 13826.240
+epoch:  413  loss: 13802.357
+epoch:  414  loss: 13773.490
+epoch:  415  loss: 13843.525
+epoch:  416  loss: 13846.231
+epoch:  417  loss: 13845.242
+epoch:  418  loss: 13804.357
+epoch:  419  loss: 13798.859
+1.5570695209831253e-05
+                     train_reward:  2136.2703590393066
+epoch:  420  loss: 13771.055
+epoch:  421  loss: 13895.811
+epoch:  422  loss: 13834.503
+epoch:  423  loss: 13766.184
+epoch:  424  loss: 13762.909
+epoch:  425  loss: 13769.632
+epoch:  426  loss: 13773.011
+epoch:  427  loss: 13781.413
+epoch:  428  loss: 13825.287
+epoch:  429  loss: 13799.212
+1.5188576022798103e-05
+                     train_reward:  2310.2009278535843
+epoch:  430  loss: 13805.782
+epoch:  431  loss: 13798.267
+epoch:  432  loss: 13771.214
+epoch:  433  loss: 13770.200
+epoch:  434  loss: 13776.219
+epoch:  435  loss: 13767.125
+epoch:  436  loss: 13769.514
+epoch:  437  loss: 13834.295
+epoch:  438  loss: 13773.264
+epoch:  439  loss: 13803.168
+1.4803803657021738e-05
+                     train_reward:  2150.076549053192
+epoch:  440  loss: 13743.249
+epoch:  441  loss: 13800.992
+epoch:  442  loss: 13784.508
+epoch:  443  loss: 13764.056
+epoch:  444  loss: 13798.647
+epoch:  445  loss: 13763.863
+epoch:  446  loss: 13746.452
+epoch:  447  loss: 13859.947
+epoch:  448  loss: 13849.446
+epoch:  449  loss: 13813.615
+1.4416757836348304e-05
+                     train_reward:  2086.1610618829727
+epoch:  450  loss: 13797.202
+epoch:  451  loss: 13801.949
+epoch:  452  loss: 13766.806
+epoch:  453  loss: 13798.673
+epoch:  454  loss: 13774.070
+epoch:  455  loss: 13758.523
+epoch:  456  loss: 13790.907
+epoch:  457  loss: 13745.341
+epoch:  458  loss: 13774.943
+epoch:  459  loss: 13776.761
+1.4027820528248082e-05
+                     train_reward:  2246.630131840706
+epoch:  460  loss: 13769.509
+epoch:  461  loss: 13772.348
+epoch:  462  loss: 13797.271
+epoch:  463  loss: 13800.140
+epoch:  464  loss: 13772.850
+epoch:  465  loss: 13778.814
+epoch:  466  loss: 13787.752
+epoch:  467  loss: 13745.346
+epoch:  468  loss: 13753.261
+epoch:  469  loss: 13769.949
+1.3637375566859687e-05
+                     train_reward:  2209.2593278884888
+epoch:  470  loss: 13785.430
+epoch:  471  loss: 13778.740
+epoch:  472  loss: 13750.389
+epoch:  473  loss: 13834.532
+epoch:  474  loss: 13782.099
+epoch:  475  loss: 13742.044
+epoch:  476  loss: 13813.184
+epoch:  477  loss: 13760.216
+epoch:  478  loss: 13758.979
+epoch:  479  loss: 13774.493
+1.3245808274191939e-05
+                     train_reward:  2264.3846703767776
+epoch:  480  loss: 13840.666
+epoch:  481  loss: 13792.652
+epoch:  482  loss: 13753.069
+epoch:  483  loss: 13766.625
+epoch:  484  loss: 13720.685
+epoch:  485  loss: 13749.593
+epoch:  486  loss: 13761.177
+epoch:  487  loss: 13808.076
+epoch:  488  loss: 13784.533
+epoch:  489  loss: 13772.363
+1.2853505079857394e-05
+                     train_reward:  2080.2334504127502
+epoch:  490  loss: 13778.325
+epoch:  491  loss: 13710.370
+epoch:  492  loss: 13754.523
+epoch:  493  loss: 13757.723
+epoch:  494  loss: 13851.401
+epoch:  495  loss: 13720.585
+epoch:  496  loss: 13768.214
+epoch:  497  loss: 13780.252
+epoch:  498  loss: 13777.370
+epoch:  499  loss: 13809.101
+1.2460853139712892e-05
+                     train_reward:  2323.319944858551
+epoch:  500  loss: 13730.148
+epoch:  501  loss: 13848.754
+epoch:  502  loss: 13834.846
+epoch:  503  loss: 13853.131
+epoch:  504  loss: 13876.789
+epoch:  505  loss: 13857.334
+epoch:  506  loss: 13850.016
+epoch:  507  loss: 13831.628
+epoch:  508  loss: 13894.117
+epoch:  509  loss: 13866.461
+1.2068239953783196e-05
+                     train_reward:  2254.311605811119
+epoch:  510  loss: 13895.308
+epoch:  511  loss: 13848.747
+epoch:  512  loss: 13830.228
+epoch:  513  loss: 13822.684
+epoch:  514  loss: 13831.325
+epoch:  515  loss: 13857.985
+epoch:  516  loss: 13862.049
+epoch:  517  loss: 13834.121
+epoch:  518  loss: 13842.059
+epoch:  519  loss: 13928.030
+1.167605298384513e-05
+                     train_reward:  2294.4117501974106
+epoch:  520  loss: 13863.548
+epoch:  521  loss: 13825.323
+epoch:  522  loss: 13845.107
+epoch:  523  loss: 13913.209
+epoch:  524  loss: 13834.968
+epoch:  525  loss: 13830.872
+epoch:  526  loss: 13845.917
+epoch:  527  loss: 13841.598
+epoch:  528  loss: 13926.663
+epoch:  529  loss: 13833.439
+1.1284679271049284e-05
+                     train_reward:  2329.2709929943085
+epoch:  530  loss: 13853.432
+epoch:  531  loss: 13841.602
+epoch:  532  loss: 13849.599
+epoch:  533  loss: 13965.729
+epoch:  534  loss: 13811.865
+epoch:  535  loss: 13850.089
+epoch:  536  loss: 13807.345
+epoch:  537  loss: 13882.930
+epoch:  538  loss: 13832.414
+epoch:  539  loss: 13842.222
+1.0894505053956963e-05
+                     train_reward:  2352.9823710918427
+epoch:  540  loss: 13867.159
+epoch:  541  loss: 13835.998
+epoch:  542  loss: 13836.623
+epoch:  543  loss: 13816.401
+epoch:  544  loss: 13874.881
+epoch:  545  loss: 13849.629
+epoch:  546  loss: 13823.028
+epoch:  547  loss: 13830.354
+epoch:  548  loss: 13861.145
+epoch:  549  loss: 13877.409
+1.0505915387368997e-05
+                     train_reward:  2186.0314322710037
+epoch:  550  loss: 13848.976
+epoch:  551  loss: 13791.040
+epoch:  552  loss: 13828.469
+epoch:  553  loss: 13939.982
+epoch:  554  loss: 13833.944
+epoch:  555  loss: 13863.119
+epoch:  556  loss: 13823.342
+epoch:  557  loss: 13825.405
+epoch:  558  loss: 13829.147
+epoch:  559  loss: 13811.325
+1.011929376232286e-05
+                     train_reward:  2468.929543495178
+epoch:  560  loss: 13799.406
+epoch:  561  loss: 13854.298
+epoch:  562  loss: 13968.866
+epoch:  563  loss: 13860.441
+epoch:  564  loss: 13820.619
+epoch:  565  loss: 13858.434
+epoch:  566  loss: 13806.519
+epoch:  567  loss: 13852.766
+epoch:  568  loss: 13846.701
+epoch:  569  loss: 13805.209
+9.735021727632942e-06
+                     train_reward:  2227.2747336626053
+epoch:  570  loss: 13859.583
+epoch:  571  loss: 13821.249
+epoch:  572  loss: 13834.585
+epoch:  573  loss: 13876.477
+epoch:  574  loss: 13830.620
+epoch:  575  loss: 13823.397
+epoch:  576  loss: 13865.754
+epoch:  577  loss: 13811.854
+epoch:  578  loss: 13880.020
+epoch:  579  loss: 13873.934
+9.353478513347526e-06
+                     train_reward:  2352.6859850883484
+epoch:  580  loss: 13852.628
+epoch:  581  loss: 13802.921
+epoch:  582  loss: 13920.416
+epoch:  583  loss: 13911.494
+epoch:  584  loss: 13843.105
+epoch:  585  loss: 13867.081
+epoch:  586  loss: 13854.979
+epoch:  587  loss: 13818.993
+epoch:  588  loss: 13837.396
+epoch:  589  loss: 13782.571
+8.97504065649401e-06
+                     train_reward:  2235.686537258327
+epoch:  590  loss: 13819.815
+epoch:  591  loss: 13856.359
+epoch:  592  loss: 13830.614
+epoch:  593  loss: 13837.062
+epoch:  594  loss: 13802.620
+epoch:  595  loss: 13864.295
+epoch:  596  loss: 13808.302
+epoch:  597  loss: 13785.848
+epoch:  598  loss: 13835.365
+epoch:  599  loss: 13875.870
+8.600081629481866e-06
+                     train_reward:  2312.087653398514
+epoch:  600  loss: 13819.797
+epoch:  601  loss: 13915.323
+epoch:  602  loss: 13831.432
+epoch:  603  loss: 13832.594
+epoch:  604  loss: 13856.799
+epoch:  605  loss: 13891.502
+epoch:  606  loss: 13974.318
+epoch:  607  loss: 13847.090
+epoch:  608  loss: 13839.467
+epoch:  609  loss: 13861.813
+8.228971471529712e-06
+                     train_reward:  2344.505616426468
+epoch:  610  loss: 13894.344
+epoch:  611  loss: 13823.867
+epoch:  612  loss: 13845.327
+epoch:  613  loss: 13827.515
+epoch:  614  loss: 13832.252
+epoch:  615  loss: 13888.756
+epoch:  616  loss: 13852.877
+epoch:  617  loss: 13831.541
+epoch:  618  loss: 13909.964
+epoch:  619  loss: 14011.338
+7.862076423480681e-06
+                     train_reward:  2447.3689489364624
+epoch:  620  loss: 13856.509
+epoch:  621  loss: 13833.093
+epoch:  622  loss: 13852.658
+epoch:  623  loss: 13801.115
+epoch:  624  loss: 13824.661
+epoch:  625  loss: 13883.459
+epoch:  626  loss: 13921.450
+epoch:  627  loss: 13903.781
+epoch:  628  loss: 13833.608
+epoch:  629  loss: 13788.389
+7.49975856636603e-06
+                     train_reward:  2335.433120369911
+epoch:  630  loss: 13812.941
+epoch:  631  loss: 13826.548
+epoch:  632  loss: 13820.932
+epoch:  633  loss: 13859.911
+epoch:  634  loss: 13860.750
+epoch:  635  loss: 13860.737
+epoch:  636  loss: 13846.987
+epoch:  637  loss: 13833.542
+epoch:  638  loss: 13868.292
+epoch:  639  loss: 13894.487
+7.142375464073931e-06
+                     train_reward:  2290.3237557411194
+epoch:  640  loss: 13827.122
+epoch:  641  loss: 13820.238
+epoch:  642  loss: 13903.231
+epoch:  643  loss: 13855.282
+epoch:  644  loss: 13842.777
+epoch:  645  loss: 13821.476
+epoch:  646  loss: 13837.683
+epoch:  647  loss: 13854.108
+epoch:  648  loss: 13829.787
+epoch:  649  loss: 13845.745
+6.7902798104759676e-06
+                     train_reward:  2248.646782398224
+epoch:  650  loss: 13897.004
+epoch:  651  loss: 13840.279
+epoch:  652  loss: 13844.030
+epoch:  653  loss: 13850.218
+epoch:  654  loss: 13826.308
+epoch:  655  loss: 13811.327
+epoch:  656  loss: 13830.038
+epoch:  657  loss: 13787.544
+epoch:  658  loss: 13957.595
+epoch:  659  loss: 13841.948
+6.443819081359525e-06
+                     train_reward:  2215.367410182953
+epoch:  660  loss: 13863.564
+epoch:  661  loss: 13845.717
+epoch:  662  loss: 13827.299
+epoch:  663  loss: 13835.600
+epoch:  664  loss: 13976.972
+epoch:  665  loss: 13877.745
+epoch:  666  loss: 13878.947
+epoch:  667  loss: 13981.524
+epoch:  668  loss: 13803.902
+epoch:  669  loss: 13823.847
+6.103335191509601e-06
+                     train_reward:  2208.2548364400864
+epoch:  670  loss: 13866.652
+epoch:  671  loss: 13887.628
+epoch:  672  loss: 13851.166
+epoch:  673  loss: 13855.914
+epoch:  674  loss: 13838.023
+epoch:  675  loss: 13837.916
+epoch:  676  loss: 13823.049
+epoch:  677  loss: 13836.587
+epoch:  678  loss: 13817.909
+epoch:  679  loss: 13878.224
+5.769164157278404e-06
+                     train_reward:  2215.493975996971
+epoch:  680  loss: 13824.529
+epoch:  681  loss: 13816.006
+epoch:  682  loss: 13786.300
+epoch:  683  loss: 13813.216
+epoch:  684  loss: 13841.714
+epoch:  685  loss: 13814.755
+epoch:  686  loss: 13840.925
+epoch:  687  loss: 13838.825
+epoch:  688  loss: 13852.944
+epoch:  689  loss: 13818.276
+5.441635764975499e-06
+                     train_reward:  2343.5055272579193
+epoch:  690  loss: 13856.722
+epoch:  691  loss: 13827.072
+epoch:  692  loss: 13826.448
+epoch:  693  loss: 13948.717
+epoch:  694  loss: 13820.602
+epoch:  695  loss: 13854.837
+epoch:  696  loss: 13807.265
+epoch:  697  loss: 13824.273
+epoch:  698  loss: 13882.791
+epoch:  699  loss: 13790.178
+5.121073245406052e-06
+                     train_reward:  2263.9244480133057
+epoch:  700  loss: 13878.835
+epoch:  701  loss: 13838.558
+epoch:  702  loss: 13864.601
+epoch:  703  loss: 13800.322
+epoch:  704  loss: 13819.804
+epoch:  705  loss: 13892.378
+epoch:  706  loss: 13823.543
+epoch:  707  loss: 13825.497
+epoch:  708  loss: 13810.310
+epoch:  709  loss: 13848.457
+4.8077929548778205e-06
+                     train_reward:  2214.7721294164658
+epoch:  710  loss: 13849.521
+epoch:  711  loss: 13850.853
+epoch:  712  loss: 13828.304
+epoch:  713  loss: 13790.500
+epoch:  714  loss: 13786.172
+epoch:  715  loss: 13835.349
+epoch:  716  loss: 13778.506
+epoch:  717  loss: 13809.025
+epoch:  718  loss: 13824.259
+epoch:  719  loss: 13800.020
+4.502104062991921e-06
+                     train_reward:  2313.8925994560122
+epoch:  720  loss: 13809.596
+epoch:  721  loss: 13874.461
+epoch:  722  loss: 13864.074
+epoch:  723  loss: 13823.272
+epoch:  724  loss: 13797.816
+epoch:  725  loss: 13838.243
+epoch:  726  loss: 13880.255
+epoch:  727  loss: 13809.400
+epoch:  728  loss: 13819.021
+epoch:  729  loss: 13786.528
+4.20430824752515e-06
+                     train_reward:  2335.0778118371964
+epoch:  730  loss: 13779.371
+epoch:  731  loss: 13815.888
+epoch:  732  loss: 13859.308
+epoch:  733  loss: 13798.497
+epoch:  734  loss: 13814.619
+epoch:  735  loss: 13821.710
+epoch:  736  loss: 13822.641
+epoch:  737  loss: 13796.334
+epoch:  738  loss: 13827.300
+epoch:  739  loss: 13807.321
+3.914699396704807e-06
+                     train_reward:  2446.776923894882
+epoch:  740  loss: 13816.626
+epoch:  741  loss: 13833.162
+epoch:  742  loss: 13786.738
+epoch:  743  loss: 13817.465
+epoch:  744  loss: 13785.399
+epoch:  745  loss: 13820.489
+epoch:  746  loss: 13811.406
+epoch:  747  loss: 13796.178
+epoch:  748  loss: 13806.418
+epoch:  749  loss: 13772.484
+3.633563319169395e-06
+                     train_reward:  2359.916311979294
+epoch:  750  loss: 13836.477
+epoch:  751  loss: 13808.977
+epoch:  752  loss: 13810.200
+epoch:  753  loss: 13769.203
+epoch:  754  loss: 13795.638
+epoch:  755  loss: 13855.345
+epoch:  756  loss: 13861.097
+epoch:  757  loss: 13874.206
+epoch:  758  loss: 13807.801
+epoch:  759  loss: 13810.343
+3.3611774619014336e-06
+                     train_reward:  2315.986212491989
+epoch:  760  loss: 13827.753
+epoch:  761  loss: 13797.168
+epoch:  762  loss: 13822.724
+epoch:  763  loss: 13803.958
+epoch:  764  loss: 13835.031
+epoch:  765  loss: 13827.905
+epoch:  766  loss: 13810.376
+epoch:  767  loss: 13842.168
+epoch:  768  loss: 13784.400
+epoch:  769  loss: 13803.822
+3.0978106364097728e-06
+                     train_reward:  2384.6024663448334
+epoch:  770  loss: 13888.526
+epoch:  771  loss: 13817.898
+epoch:  772  loss: 13814.027
+epoch:  773  loss: 13862.238
+epoch:  774  loss: 13808.650
+epoch:  775  loss: 13775.742
+epoch:  776  loss: 13833.206
+epoch:  777  loss: 13882.384
+epoch:  778  loss: 13825.108
+epoch:  779  loss: 13817.607
+2.843722753431216e-06
+                     train_reward:  2351.311739206314
+epoch:  780  loss: 13795.923
+epoch:  781  loss: 13836.856
+epoch:  782  loss: 13871.086
+epoch:  783  loss: 13826.063
+epoch:  784  loss: 13809.464
+epoch:  785  loss: 13880.221
+epoch:  786  loss: 13805.137
+epoch:  787  loss: 13803.608
+epoch:  788  loss: 13818.524
+epoch:  789  loss: 13838.618
+2.5991645664122247e-06
+                     train_reward:  2322.1437326669693
+epoch:  790  loss: 13812.211
+epoch:  791  loss: 13800.486
+epoch:  792  loss: 13815.671
+epoch:  793  loss: 13778.703
+epoch:  794  loss: 13939.522
+epoch:  795  loss: 13839.873
+epoch:  796  loss: 13882.855
+epoch:  797  loss: 13862.691
+epoch:  798  loss: 13763.134
+epoch:  799  loss: 13893.239
+2.364377424022573e-06
+                     train_reward:  2414.1329069137573
+epoch:  800  loss: 13848.970
+epoch:  801  loss: 13818.691
+epoch:  802  loss: 13924.108
+epoch:  803  loss: 13760.600
+epoch:  804  loss: 13778.346
+epoch:  805  loss: 13857.094
+epoch:  806  loss: 13842.528
+epoch:  807  loss: 13802.919
+epoch:  808  loss: 13827.306
+epoch:  809  loss: 13816.012
+2.1395930319431204e-06
+                     train_reward:  2324.6739478111267
+epoch:  810  loss: 13826.121
+epoch:  811  loss: 13859.938
+epoch:  812  loss: 13818.026
+epoch:  813  loss: 13910.036
+epoch:  814  loss: 13802.220
+epoch:  815  loss: 13850.753
+epoch:  816  loss: 13820.449
+epoch:  817  loss: 13864.525
+epoch:  818  loss: 13814.792
+epoch:  819  loss: 13777.043
+1.92503322416022e-06
+                     train_reward:  2373.1626200675964
+epoch:  820  loss: 13822.231
+epoch:  821  loss: 13836.060
+epoch:  822  loss: 13832.131
+epoch:  823  loss: 13807.476
+epoch:  824  loss: 13893.994
+epoch:  825  loss: 13818.113
+epoch:  826  loss: 13863.010
+epoch:  827  loss: 13846.795
+epoch:  828  loss: 13844.254
+epoch:  829  loss: 13832.808
+1.720909743988365e-06
+                     train_reward:  2349.349606513977
+epoch:  830  loss: 13835.592
+epoch:  831  loss: 13837.702
+epoch:  832  loss: 13841.876
+epoch:  833  loss: 13847.908
+epoch:  834  loss: 13850.121
+epoch:  835  loss: 13855.883
+epoch:  836  loss: 13861.843
+epoch:  837  loss: 13813.541
+epoch:  838  loss: 13810.134
+epoch:  839  loss: 13808.314
+1.5274240350310647e-06
+                     train_reward:  2377.78755068779
+epoch:  840  loss: 13869.021
+epoch:  841  loss: 13842.623
+epoch:  842  loss: 13858.492
+epoch:  843  loss: 13850.041
+epoch:  844  loss: 13765.432
+epoch:  845  loss: 13844.616
+epoch:  846  loss: 13775.923
+epoch:  847  loss: 13837.873
+epoch:  848  loss: 13905.941
+epoch:  849  loss: 13815.494
+1.3447670422772541e-06
+                     train_reward:  2322.048312664032
+epoch:  850  loss: 13808.549
+epoch:  851  loss: 13843.379
+epoch:  852  loss: 13791.201
+epoch:  853  loss: 13913.950
+epoch:  854  loss: 13811.876
+epoch:  855  loss: 13833.434
+epoch:  856  loss: 13825.982
+epoch:  857  loss: 13838.112
+epoch:  858  loss: 13835.450
+epoch:  859  loss: 13912.166
+1.1731190235148875e-06
+                     train_reward:  2532.069420993328
+epoch:  860  loss: 13955.044
+epoch:  861  loss: 13793.240
+epoch:  862  loss: 13821.874
+epoch:  863  loss: 13834.979
+epoch:  864  loss: 13915.014
+epoch:  865  loss: 13838.291
+epoch:  866  loss: 13818.285
+epoch:  867  loss: 13884.468
+epoch:  868  loss: 13800.849
+epoch:  869  loss: 13809.910
+1.0126493712248266e-06
+                     train_reward:  2317.2215542793274
+epoch:  870  loss: 13876.969
+epoch:  871  loss: 13913.382
+epoch:  872  loss: 13827.728
+epoch:  873  loss: 13823.200
+epoch:  874  loss: 13806.633
+epoch:  875  loss: 13789.099
+epoch:  876  loss: 13835.195
+epoch:  877  loss: 13784.972
+epoch:  878  loss: 13787.441
+epoch:  879  loss: 13812.365
+8.635164450923625e-07
+                     train_reward:  2472.199330806732
+epoch:  880  loss: 13806.721
+epoch:  881  loss: 13818.397
+epoch:  882  loss: 13854.984
+epoch:  883  loss: 13846.123
+epoch:  884  loss: 13823.075
+epoch:  885  loss: 13851.291
+epoch:  886  loss: 13867.588
+epoch:  887  loss: 13867.360
+epoch:  888  loss: 13873.852
+epoch:  889  loss: 13852.024
+7.258674152355835e-07
+                     train_reward:  2307.1335484981537
+epoch:  890  loss: 13878.820
+epoch:  891  loss: 13858.777
+epoch:  892  loss: 13818.775
+epoch:  893  loss: 13840.124
+epoch:  894  loss: 13827.332
+epoch:  895  loss: 13779.059
+epoch:  896  loss: 13828.282
+epoch:  897  loss: 13877.653
+epoch:  898  loss: 13837.750
+epoch:  899  loss: 13853.760
+5.998381161872854e-07
+                     train_reward:  2358.567149877548
+epoch:  900  loss: 13903.148
+epoch:  901  loss: 13856.658
+epoch:  902  loss: 13815.413
+epoch:  903  loss: 13870.497
+epoch:  904  loss: 13812.088
+epoch:  905  loss: 13836.900
+epoch:  906  loss: 13827.695
+epoch:  907  loss: 13849.988
+epoch:  908  loss: 13789.197
+epoch:  909  loss: 13784.139
+4.855529115532112e-07
+                     train_reward:  2317.690025448799
+epoch:  910  loss: 13775.771
+epoch:  911  loss: 13792.028
+epoch:  912  loss: 13816.936
+epoch:  913  loss: 13786.659
+epoch:  914  loss: 13817.178
+epoch:  915  loss: 13803.749
+epoch:  916  loss: 13765.838
+epoch:  917  loss: 13821.377
+epoch:  918  loss: 13776.175
+epoch:  919  loss: 13836.387
+3.8312456904085823e-07
+                     train_reward:  2370.8430778980255
+epoch:  920  loss: 13782.869
+epoch:  921  loss: 13786.981
+epoch:  922  loss: 13781.650
+epoch:  923  loss: 13812.261
+epoch:  924  loss: 13812.886
+epoch:  925  loss: 13778.204
+epoch:  926  loss: 13806.322
+epoch:  927  loss: 13811.735
+epoch:  928  loss: 13797.775
+epoch:  929  loss: 13778.779
+2.926541450505506e-07
+                     train_reward:  2364.7923793792725
+epoch:  930  loss: 13854.342
+epoch:  931  loss: 13931.852
+epoch:  932  loss: 13801.052
+epoch:  933  loss: 13814.994
+epoch:  934  loss: 13785.903
+epoch:  935  loss: 13828.118
+epoch:  936  loss: 13827.940
+epoch:  937  loss: 13874.713
+epoch:  938  loss: 13803.343
+epoch:  939  loss: 13822.419
+2.142308767951072e-07
+                     train_reward:  2329.903151988983
+epoch:  940  loss: 13806.122
+epoch:  941  loss: 13840.762
+epoch:  942  loss: 13919.919
+epoch:  943  loss: 13787.251
+epoch:  944  loss: 13837.282
+epoch:  945  loss: 13882.158
+epoch:  946  loss: 13795.864
+epoch:  947  loss: 13887.575
+epoch:  948  loss: 13809.686
+epoch:  949  loss: 13791.254
+1.4793207655756938e-07
+                     train_reward:  2341.763771533966
+epoch:  950  loss: 13871.395
+epoch:  951  loss: 13770.300
+epoch:  952  loss: 13783.969
+epoch:  953  loss: 13829.664
+epoch:  954  loss: 13831.362
+epoch:  955  loss: 13820.615
+epoch:  956  loss: 13800.535
+epoch:  957  loss: 13782.456
+epoch:  958  loss: 13776.649
+epoch:  959  loss: 13785.791
+9.382301204162117e-08
+                     train_reward:  2382.1083540916443
+epoch:  960  loss: 13797.150
+epoch:  961  loss: 13781.114
+epoch:  962  loss: 13780.963
+epoch:  963  loss: 13839.870
+epoch:  964  loss: 13822.614
+epoch:  965  loss: 13909.754
+epoch:  966  loss: 13841.785
+epoch:  967  loss: 13802.168
+epoch:  968  loss: 13870.523
+epoch:  969  loss: 13778.706
+5.19567154721795e-08
+                     train_reward:  2238.544759273529
+epoch:  970  loss: 13801.459
+epoch:  971  loss: 13843.469
+epoch:  972  loss: 13852.898
+epoch:  973  loss: 13839.540
+epoch:  974  loss: 13761.494
+epoch:  975  loss: 13847.454
+epoch:  976  loss: 13801.641
+epoch:  977  loss: 13796.837
+epoch:  978  loss: 13789.061
+epoch:  979  loss: 13872.721
+2.237344805484206e-08
+                     train_reward:  2488.9535900354385
+epoch:  980  loss: 13838.627
+epoch:  981  loss: 13797.268
+epoch:  982  loss: 13844.833
+epoch:  983  loss: 13803.744
+epoch:  984  loss: 13804.133
+epoch:  985  loss: 13820.253
+epoch:  986  loss: 13801.181
+epoch:  987  loss: 13811.349
+epoch:  988  loss: 13859.225
+epoch:  989  loss: 13811.928
+5.097604928629745e-09
+                     train_reward:  2296.7323718070984
+epoch:  990  loss: 13810.425
+epoch:  991  loss: 13830.181
+epoch:  992  loss: 13781.169
+epoch:  993  loss: 13856.499
+epoch:  994  loss: 13777.220
+epoch:  995  loss: 13780.908
+epoch:  996  loss: 13803.598
+epoch:  997  loss: 13843.944
+epoch:  998  loss: 13854.523
+epoch:  999  loss: 13812.467
+0.0
+                     train_reward:  2223.2791246175766
+epoch:  1000  loss: 13772.669
+epoch:  1001  loss: 13840.463
+epoch:  1002  loss: 13785.247
+epoch:  1003  loss: 13801.612
+epoch:  1004  loss: 13810.828
+epoch:  1005  loss: 13861.517
+epoch:  1006  loss: 13757.616
+epoch:  1007  loss: 13839.837
+epoch:  1008  loss: 13827.392
+epoch:  1009  loss: 13814.523
+7.614690174305564e-09
+                     train_reward:  2198.6030225753784
+epoch:  1010  loss: 13843.940
+epoch:  1011  loss: 13794.819
+epoch:  1012  loss: 13816.388
+epoch:  1013  loss: 13871.522
+epoch:  1014  loss: 13965.892
+epoch:  1015  loss: 13804.225
+epoch:  1016  loss: 13826.130
+epoch:  1017  loss: 13803.123
+epoch:  1018  loss: 13977.979
+epoch:  1019  loss: 13820.508
+2.7329754483378494e-08
+                     train_reward:  2259.4198322296143
+epoch:  1020  loss: 13849.800
+epoch:  1021  loss: 13784.374
+epoch:  1022  loss: 13805.803
+epoch:  1023  loss: 13814.588
+epoch:  1024  loss: 13888.151
+epoch:  1025  loss: 13827.747
+epoch:  1026  loss: 13768.269
+epoch:  1027  loss: 13780.727
+epoch:  1028  loss: 13836.506
+epoch:  1029  loss: 13821.036
+5.9364417536490484e-08
+                     train_reward:  2430.446596264839
+epoch:  1030  loss: 13816.991
+epoch:  1031  loss: 13790.612
+epoch:  1032  loss: 13799.927
+epoch:  1033  loss: 13814.877
+epoch:  1034  loss: 13846.940
+epoch:  1035  loss: 13771.347
+epoch:  1036  loss: 13846.767
+epoch:  1037  loss: 13835.603
+epoch:  1038  loss: 13799.855
+epoch:  1039  loss: 13831.260
+1.0367897730640923e-07
+                     train_reward:  2408.964902281761
+epoch:  1040  loss: 13927.013
+epoch:  1041  loss: 13853.328
+epoch:  1042  loss: 13859.691
+epoch:  1043  loss: 13844.556
+epoch:  1044  loss: 13766.192
+epoch:  1045  loss: 13804.915
+epoch:  1046  loss: 13818.490
+epoch:  1047  loss: 13826.826
+epoch:  1048  loss: 13872.697
+epoch:  1049  loss: 13825.416
+1.6022824570391504e-07
+                     train_reward:  2519.8385722637177
+epoch:  1050  loss: 13847.773
+epoch:  1051  loss: 13797.225
+epoch:  1052  loss: 13790.325
+epoch:  1053  loss: 13809.294
+epoch:  1054  loss: 13813.136
+epoch:  1055  loss: 13769.070
+epoch:  1056  loss: 13818.212
+epoch:  1057  loss: 13798.085
+epoch:  1058  loss: 13814.676
+epoch:  1059  loss: 13889.260
+2.2895595033145115e-07
+                     train_reward:  2419.8155262470245
+epoch:  1060  loss: 13775.385
+epoch:  1061  loss: 13801.521
+epoch:  1062  loss: 13813.640
+epoch:  1063  loss: 13813.598
+epoch:  1064  loss: 13955.548
+epoch:  1065  loss: 13804.454
+epoch:  1066  loss: 13780.483
+epoch:  1067  loss: 13804.314
+epoch:  1068  loss: 13785.110
+epoch:  1069  loss: 13808.644
+3.097940704078969e-07
+                     train_reward:  2450.24187707901
+epoch:  1070  loss: 13847.302
+epoch:  1071  loss: 13771.286
+epoch:  1072  loss: 13797.090
+epoch:  1073  loss: 13749.497
+epoch:  1074  loss: 13877.554
+epoch:  1075  loss: 13773.279
+epoch:  1076  loss: 13814.759
+epoch:  1077  loss: 13892.543
+epoch:  1078  loss: 13897.749
+epoch:  1079  loss: 13827.221
+4.026627324051009e-07
+                     train_reward:  2407.0747570991516
+epoch:  1080  loss: 13773.661
+epoch:  1081  loss: 13858.646
+epoch:  1082  loss: 13771.123
+epoch:  1083  loss: 13892.810
+epoch:  1084  loss: 13795.532
+epoch:  1085  loss: 13791.174
+epoch:  1086  loss: 13887.007
+epoch:  1087  loss: 13795.226
+epoch:  1088  loss: 13810.569
+epoch:  1089  loss: 13799.626
+5.074702332768014e-07
+                     train_reward:  2362.323772072792
+epoch:  1090  loss: 13799.646
+epoch:  1091  loss: 13850.520
+epoch:  1092  loss: 13808.719
+epoch:  1093  loss: 13848.884
+epoch:  1094  loss: 13827.472
+epoch:  1095  loss: 13806.368
+epoch:  1096  loss: 13786.279
+epoch:  1097  loss: 13982.170
+epoch:  1098  loss: 13793.622
+epoch:  1099  loss: 13795.088
+6.24113109124964e-07
+                     train_reward:  2383.1872045993805
+epoch:  1100  loss: 13803.972
+epoch:  1101  loss: 13795.403
+epoch:  1102  loss: 13803.814
+epoch:  1103  loss: 13803.744
+epoch:  1104  loss: 13850.927
+epoch:  1105  loss: 13873.190
+epoch:  1106  loss: 13996.505
+epoch:  1107  loss: 13843.111
+epoch:  1108  loss: 13803.518
+epoch:  1109  loss: 13779.358
+7.52476227510546e-07
+                     train_reward:  2471.917506456375
+epoch:  1110  loss: 13819.083
+epoch:  1111  loss: 13790.932
+epoch:  1112  loss: 13790.684
+epoch:  1113  loss: 13770.341
+epoch:  1114  loss: 13807.615
+epoch:  1115  loss: 13804.873
+epoch:  1116  loss: 13797.349
+epoch:  1117  loss: 13861.135
+epoch:  1118  loss: 13848.747
+epoch:  1119  loss: 13823.053
+8.924328962245559e-07
+                     train_reward:  2486.6271188259125
+epoch:  1120  loss: 13850.518
+epoch:  1121  loss: 13803.597
+epoch:  1122  loss: 13819.186
+epoch:  1123  loss: 13826.490
+epoch:  1124  loss: 13889.168
+epoch:  1125  loss: 13836.921
+epoch:  1126  loss: 13808.219
+epoch:  1127  loss: 13825.922
+epoch:  1128  loss: 13850.132
+epoch:  1129  loss: 13928.393
+1.0438449857252128e-06
+                     train_reward:  2484.652503490448
+epoch:  1130  loss: 13817.978
+epoch:  1131  loss: 13852.870
+epoch:  1132  loss: 13832.636
+epoch:  1133  loss: 13875.393
+epoch:  1134  loss: 13836.056
+epoch:  1135  loss: 13900.526
+epoch:  1136  loss: 13811.400
+epoch:  1137  loss: 13840.694
+epoch:  1138  loss: 13774.414
+epoch:  1139  loss: 13828.118
+1.206563063981952e-06
