@@ -35,7 +35,7 @@ if __name__ == '__main__':
     parser.add_argument('--device', type=str, default=device)
 
     # IQN
-    parser.add_argument('--num_quantile', type=int, default=32)
+    parser.add_argument('--num_quantile', type=int, default=64)
 
     args = parser.parse_args()
 
@@ -55,18 +55,16 @@ if __name__ == '__main__':
         shutil.rmtree(summary_dir)
         os.makedirs(summary_dir)
 
+    japanese_vectors = Vectors(name='../data/news/cc.ja.300.vec')
+
     # Create Dataset
     train_ds = MyDataset(
         path=os.path.join('..', 'data', 'news', 'text_train.tsv'),
         specials=['<company>', '<organization>', '<person>', '<location>'],
-        max_len=args.max_length
-    )
-
-    japanese_fasttext_vectors = Vectors(name='../data/news/cc.ja.300.vec')
-
-    train_ds.build_vocab(
-        vectors=japanese_fasttext_vectors,
-        min_freq=args.min_freq
+        max_len=args.max_length,
+        vectors=japanese_vectors,
+        min_freq=args.min_freq,
+        phase='train'
     )
 
     train_dl = torch.utils.data.DataLoader(
@@ -81,4 +79,3 @@ if __name__ == '__main__':
 
     trainer = Trainer(args, text_vectors, vocab_size, train_dl)
     trainer.run()
-    # Crete DataLoader

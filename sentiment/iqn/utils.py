@@ -12,6 +12,8 @@ from collections import defaultdict, OrderedDict
 import torch
 from torchtext.vocab import Vectors, Vocab
 
+from dataAugment.dataAugment import *
+
 # 前処理
 def preprocessing_text(text):
     # カンマ、ピリオド以外の記号をスペースに置換
@@ -65,7 +67,8 @@ def unicode_csv_reader(unicode_csv_data, **kwargs):
 
 
 class MyDataset(torch.utils.data.Dataset):
-    def __init__(self, path, max_len=64, vocab=None, specials=[]):
+    def __init__(self, path, max_len=64, vectors=None, 
+                 min_freq=10, specials=[], phase='val'):
         self.keys = ['Date', 'Code', 'State', 'Next_State', 'Reward']
         self.string_keys = ['State', 'Next_State']
         self.tensor_keys = ['Reward'] + self.string_keys
@@ -78,7 +81,7 @@ class MyDataset(torch.utils.data.Dataset):
                     if k in self.string_keys:
                         self.data_list[k].append(x.split(':'))
                     elif k in self.tensor_keys:
-                       self.data_list[k].append(float(x))
+                        self.data_list[k].append(float(x))
                     else:
                         self.data_list[k].append(x)
         
@@ -93,13 +96,6 @@ class MyDataset(torch.utils.data.Dataset):
         self.words = list(itertools.chain.from_iterable(self.data_list['State']))
         self.counter = Counter(self.words)
 
-        self.vocab = None
-        if vocab is not None: 
-            self.vocab = vocab
-            self.padded_list = self.pad(self.data_list)
-            self.tensor_list = self.numericalize(self.padded_list)
-
-    def build_vocab(self, vectors, min_freq):
         specials = list(OrderedDict.fromkeys(
             tok for tok in [self.unk_token, self.pad_token, self.init_token,
                             self.eos_token] + self.specials
@@ -110,6 +106,13 @@ class MyDataset(torch.utils.data.Dataset):
                            min_freq=min_freq) 
         self.padded_list = self.pad(self.data_list)
         self.tensor_list = self.numericalize(self.padded_list)
+
+        stopwords = []
+        for w in ['<cls>', '<eos>', '<pad>', '<span>']:
+            stopwords.append(self.vocab.stoi[w])
+
+        self.transform = DataTransform(self.vocab, stopwords)
+        self.phase = phase
 
     def pad(self, data):
         padded = {k: [] for k in self.keys}
@@ -137,7 +140,7 @@ class MyDataset(torch.utils.data.Dataset):
                     arr.append([self.vocab.stoi[x] for x in ex])
                 tensor[key] = torch.LongTensor(arr).to('cpu')
             elif key in self.tensor_keys:
-               tensor[key] = torch.FloatTensor(val).to('cpu')
+                tensor[key] = torch.FloatTensor(val).to('cpu')
             else:                
                 tensor[key] = val
 
@@ -149,5 +152,25 @@ class MyDataset(torch.utils.data.Dataset):
     def __getitem__(self, i):
         arr = {k: [] for k in self.keys}
         for key in self.keys:
-            arr[key] = self.tensor_list[key][i]
+            data = self.tensor_list[key][i]
+            if key == 'State':
+                data = self.transform(data, self.phase)
+
+            arr[key] = data
+
         return arr
+
+
+class DataTransform:
+    def __init__(self, vectors, stopwords):
+        self.data_transform = {
+            'train': Compose([
+                RandomSwap(vectors, aug_p=0.1, stopwords=stopwords),
+                RandomSubstitute(vectors, aug_p=0.1, stopwords=stopwords),
+            ]),
+            'val': Compose([
+            ])
+        }
+    
+    def __call__(self, text, phase):
+        return self.data_transform[phase](text)

@@ -65,6 +65,7 @@ class Trainer:
             self.scheduler.step()
             if self.epochs % 10 == 0:
                 print(self.scheduler.get_lr()[0])
+
             self.train_episode()
 
             # update target_model

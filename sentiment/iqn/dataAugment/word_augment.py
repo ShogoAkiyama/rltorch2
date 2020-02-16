@@ -15,18 +15,9 @@ class WordAugmenter(Augmenter):
         super().__init__(
             method='word', action=action, aug_min=aug_min, aug_max=aug_max, device=device)
         self.aug_p = aug_p
-        # self.tokenizer = MeCab.Tagger("-d /usr/lib/x86_64-linux-gnu/mecab/dic/mecab-ipadic-neologd \
-        #                                -u ../mydict/mydict.dic")
-        self.reverse_tokenizer = reverse_tokenizer or self._reverse_tokenizer
+
         self.stopwords = stopwords
         self.stopwords_regex = re.compile(stopwords_regex) if stopwords_regex is not None else stopwords_regex
-
-    def tokenize(self, text):
-        return text.split()
-
-    @classmethod
-    def _reverse_tokenizer(cls, tokens):
-        return ' '.join(tokens)
 
     def pre_skip_aug(self, tokens, tuple_idx=None):
         results = []
@@ -35,12 +26,7 @@ class WordAugmenter(Augmenter):
                 _token = token[tuple_idx]
             else:
                 _token = token
-            # skip punctuation
-            if _token in string.punctuation:
-                continue
-            """
-                TODO: cannot skip word that were split by tokenizer
-            """
+
             # skip stopwords by list
             if self.stopwords is not None and _token in self.stopwords:
                 continue
@@ -152,11 +138,14 @@ class WordAugmenter(Augmenter):
     def word2idx(self, word):
         return self.model.stoi[word]
 
+    def idx2word(self, idx):
+        return self.model.itos[idx]
+
     def word2vector(self, word):
         return self.model.vectors[self.word2idx(word)]
 
-    def idx2word(self, idx):
-        return self.model.itos[idx]
+    def idx2vector(self, idx):
+        return self.model.vectors[idx]
 
     def _get_swap_position(self, pos, token_length):
         if pos == 0:

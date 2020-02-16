@@ -13,9 +13,9 @@ class CNN(nn.Module):
                       out_channels=n_filters,
                       kernel_size=(fs, embedding_dim))
             for fs in filter_sizes
-        ])
+        ]).apply(weights_init_he)
 
-        self.fc0 = nn.Linear(len(filter_sizes) * n_filters, 64)
+        self.fc0 = nn.Linear(len(filter_sizes) * n_filters, 64).apply(weights_init_he)
         self.dropout = nn.Dropout(p=0.3)
 
 
@@ -117,8 +117,8 @@ class IQN(nn.Module):
         self.cnn = CNN(embedding_dim, n_filters, filter_sizes)
         self.rnn = RNN(embedding_dim, n_filters)
 
-        self.fc1 = nn.Linear(64, 64)
-        self.fc2 = nn.Linear(64, 64)
+        self.fc1 = nn.Linear(64, 64).apply(weights_init_he)
+        self.fc2 = nn.Linear(64, 64).apply(weights_init_he)
         self.fc_q = nn.Linear(64, n_actions)
 
     def forward(self, text, eta0=0.0, eta1=1.0, eval=False):
