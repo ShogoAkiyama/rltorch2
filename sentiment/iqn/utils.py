@@ -67,7 +67,7 @@ def unicode_csv_reader(unicode_csv_data, **kwargs):
 
 
 class MyDataset(torch.utils.data.Dataset):
-    def __init__(self, path, max_len=64, vectors=None, 
+    def __init__(self, path, max_len=64, vocab=None, vectors=None, 
                  min_freq=10, specials=[], phase='val'):
         self.keys = ['Date', 'Code', 'State', 'Next_State', 'Reward']
         self.string_keys = ['State', 'Next_State']
@@ -100,10 +100,15 @@ class MyDataset(torch.utils.data.Dataset):
             tok for tok in [self.unk_token, self.pad_token, self.init_token,
                             self.eos_token] + self.specials
             if tok is not None))
-        self.vocab = Vocab(self.counter,
-                           specials=specials, 
-                           vectors=vectors, 
-                           min_freq=min_freq) 
+        
+        if (phase=='val') and (vocab is not None):
+            self.vocab = vocab
+        elif (phase=='train') and (vectors is not None):
+            self.vocab = Vocab(self.counter,
+                               specials=specials, 
+                               vectors=vectors, 
+                               min_freq=min_freq) 
+
         self.padded_list = self.pad(self.data_list)
         self.tensor_list = self.numericalize(self.padded_list)
 
