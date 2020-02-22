@@ -35,7 +35,7 @@ if __name__ == '__main__':
     parser.add_argument('--device', type=str, default=device)
 
     # IQN
-    parser.add_argument('--num_quantile', type=int, default=64)
+    parser.add_argument('--num_quantile', type=int, default=32)
 
     args = parser.parse_args()
 

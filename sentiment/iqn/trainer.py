@@ -91,31 +91,32 @@ class Trainer:
 
     def train(self, states, next_states, rewards):
         curr_q, tau, _ = self.model(states)
-        curr_q = curr_q.repeat(1, 1, self.num_quantile)
+        # curr_q = curr_q.repeat(1, 1, self.num_quantile)
 
         # target_q
         with torch.no_grad():
             if self.gamma == 0.0:
                 target_q = rewards.reshape(-1, 1)
+                target_q = target_q.repeat(1, self.num_quantile)
             else:
                 next_q, _, _ = self.target_model(next_states)
                 next_q = next_q.squeeze(2)
 
                 target_q = rewards.reshape(-1, 1) + self.gamma * next_q
-            target_q = target_q.unsqueeze(2)
-            target_q = target_q.repeat(1, 1, self.num_quantile)
-            target_q = target_q.permute(0, 2, 1)
+            target_q = target_q.unsqueeze(1)
+            # target_q = target_q.unsqueeze(2)
+            # target_q = target_q.repeat(1, 1, self.num_quantile)
+            # target_q = target_q.permute(0, 2, 1)
 
         # (BATCH, N_QUANT, N_QUANT)
         tau = tau.repeat(1, 1, self.num_quantile)
-        # print(curr_q.shape, ' ', target_q.shape)
 
         diff = target_q - curr_q
 
         loss = self.huber(diff)
 
         I_delta = (diff<0).double()
-        loss *= torch.abs(tau - I_delta)
+        loss *= torch.abs(tau - I_delta).detach()
 
         # huber loss
         loss = torch.mean(torch.sum(torch.mean(loss, dim=2), dim=1))

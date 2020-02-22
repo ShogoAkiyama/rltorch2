@@ -105,7 +105,8 @@ class IQN(nn.Module):
 
         self.embedding_dropout = nn.Dropout(0.3)
         self.embedding = nn.Embedding.from_pretrained(
-            embeddings=text_vectors, freeze=True)
+            embeddings=text_vectors, freeze=False)
+
         # self.embedding = nn.Embedding(
         #     vocab_size, 
         #     embedding_dim, 
