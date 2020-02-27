@@ -12,8 +12,8 @@ def run(args):
         config = yaml.load(f, Loader=yaml.SafeLoader)
 
     # Create environments.
-    env = FrozenLakeEnv()
-    test_env = FrozenLakeEnv()
+    env = FrozenLakeEnv(is_slippery=False)
+    test_env = FrozenLakeEnv(is_slippery=False)
     print(env)
 
     # Specify the directory to log.
