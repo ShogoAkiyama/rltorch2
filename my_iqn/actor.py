@@ -44,11 +44,11 @@ class Actor:
             action = self.choose_action(self.env_state)
             next_state, reward, done, _ = self.env.step(action)
 
-            reward = 0
-            if done:
-                reward = -1
-                if self.n_steps > 190:
-                    reward = 1
+            # reward = 0
+            # if done:
+            #     reward = -1
+            #     if self.n_steps > 190:
+            #         reward = 1
 
             # push memory
             self.q_trace.put((self.env_state, action, reward, next_state, done),
