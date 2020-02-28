@@ -112,11 +112,11 @@ class FractionProposalNetwork(nn.Module):
 
 class CosineEmbeddingNetwork(nn.Module):
 
-    def __init__(self, num_cosines=64, embedding_dim=32, noisy_net=False):
+    def __init__(self, num_cosines=64, embedding_dim=32):
         super(CosineEmbeddingNetwork, self).__init__()
 
         self.net = nn.Sequential(
-            nn.linear(num_cosines, embedding_dim),
+            nn.Linear(num_cosines, embedding_dim),
             nn.ReLU()
         )
         self.num_cosines = num_cosines
@@ -145,32 +145,17 @@ class CosineEmbeddingNetwork(nn.Module):
 
 class QuantileNetwork(nn.Module):
 
-    def __init__(self, num_actions, embedding_dim=64, dueling_net=False,
-                 noisy_net=False):
+    def __init__(self, num_actions, embedding_dim=64):
         super(QuantileNetwork, self).__init__()
 
-        if not dueling_net:
-            self.net = nn.Sequential(
-                nn.linear(embedding_dim, 512),
-                nn.ReLU(),
-                linear(512, num_actions),
-            )
-        else:
-            self.advantage_net = nn.Sequential(
-                nn.linear(embedding_dim, 512),
-                nn.ReLU(),
-                nn.linear(512, num_actions),
-            )
-            self.baseline_net = nn.Sequential(
-                nn.linear(embedding_dim, 512),
-                nn.ReLU(),
-                nn.linear(512, 1),
-            )
+        self.net = nn.Sequential(
+            nn.Linear(embedding_dim, 64),
+            nn.ReLU(),
+            nn.Linear(64, num_actions),
+        )
 
         self.num_actions = num_actions
         self.embedding_dim = embedding_dim
-        self.dueling_net = dueling_net
-        self.noisy_net = noisy_net
 
     def forward(self, state_embeddings, tau_embeddings):
         assert state_embeddings.shape[0] == tau_embeddings.shape[0]
@@ -190,13 +175,7 @@ class QuantileNetwork(nn.Module):
             batch_size * num_taus, self.embedding_dim)
 
         # Calculate quantile values.
-        if not self.dueling_net:
-            quantiles = self.net(embeddings)
-        else:
-            advantages = self.advantage_net(embeddings)
-            baselines = self.baseline_net(embeddings)
-            quantiles =\
-                baselines + advantages - advantages.mean(1, keepdim=True)
+        quantiles = self.net(embeddings)
 
         return quantiles.view(batch_size, num_taus, self.num_actions)
 

@@ -6,12 +6,12 @@ gamma: 0.99
 multi_step: 1
 update_interval: 4
 target_update_interval: 1000
-start_steps: 5000
+start_steps: 100
 epsilon_train: 0.01
 epsilon_eval: 0.001
 epsilon_decay_steps: 2500  # It equals to 1M frames.
 log_interval: 100
-eval_interval: 2500
+eval_interval: 100000
 num_eval_steps: 100  # It equals to 500k frames.
-max_episode_steps: 27000
+max_episode_steps: 100
 grad_cliping:

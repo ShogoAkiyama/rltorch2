@@ -14,12 +14,9 @@ class IQN(nn.Module):
         self.dqn_net = DQNBase(num_channels=num_channels)
         # Cosine embedding network.
         self.cosine_net = CosineEmbeddingNetwork(
-            num_cosines=num_cosines, embedding_dim=embedding_dim,
-            noisy_net=noisy_net)
+            num_cosines=num_cosines, embedding_dim=embedding_dim)
         # Quantile network.
-        self.quantile_net = QuantileNetwork(
-            num_actions=num_actions, dueling_net=dueling_net,
-            noisy_net=noisy_net)
+        self.quantile_net = QuantileNetwork(num_actions=num_actions)
 
         self.K = K
         self.num_channels = num_channels
@@ -41,7 +38,7 @@ class IQN(nn.Module):
         tau_embeddings = self.cosine_net(taus)
         return self.quantile_net(state_embeddings, tau_embeddings)
 
-    def calculate_q(self, states=None, state_embeddings=None):
+    def calculate_q(self, states=None, state_embeddings=None. beta=[]):
         assert states is not None or state_embeddings is not None
         batch_size = states.shape[0] if states is not None\
             else state_embeddings.shape[0]

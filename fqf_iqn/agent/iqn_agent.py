@@ -1,5 +1,8 @@
 import torch
 from torch.optim import Adam
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 
 from model import IQN
 from utils import disable_gradients, update_params,\
@@ -15,7 +18,6 @@ class IQNAgent(BaseAgent):
                  multi_step=1, update_interval=4, target_update_interval=10000,
                  start_steps=50000, epsilon_train=0.01, epsilon_eval=0.001,
                  epsilon_decay_steps=250000, double_q_learning=False,
-                 dueling_net=False, noisy_net=False,
                  log_interval=100, eval_interval=250000, num_eval_steps=125000,
                  max_episode_steps=27000, grad_cliping=None, cuda=True,
                  seed=0):
@@ -23,20 +25,18 @@ class IQNAgent(BaseAgent):
             env, test_env, log_dir, num_steps, batch_size, memory_size,
             gamma, multi_step, update_interval, target_update_interval,
             start_steps, epsilon_train, epsilon_eval, epsilon_decay_steps,
-            double_q_learning, dueling_net, noisy_net, log_interval,
+            double_q_learning, log_interval,
             eval_interval, num_eval_steps, max_episode_steps, grad_cliping,
             cuda, seed)
 
         # Online network.
         self.online_net = IQN(
             num_channels=env.observation_space.n,
-            num_actions=self.num_actions, K=K, num_cosines=num_cosines,
-            dueling_net=dueling_net, noisy_net=noisy_net).to(self.device)
+            num_actions=self.num_actions, K=K, num_cosines=num_cosines).to(self.device)
         # Target network.
         self.target_net = IQN(
             num_channels=env.observation_space.n,
-            num_actions=self.num_actions, K=K, num_cosines=num_cosines,
-            dueling_net=dueling_net, noisy_net=noisy_net).to(self.device)
+            num_actions=self.num_actions, K=K, num_cosines=num_cosines).to(self.device)
 
         # Copy parameters of the learning network to the target network.
         self.update_target()
@@ -154,3 +154,41 @@ class IQNAgent(BaseAgent):
             td_errors, taus, self.kappa)
 
         return quantile_huber_loss
+
+    def plot(self):
+        state = torch.FloatTensor(
+                    np.eye(self.env.observation_space.n)).to(self.device)
+        with torch.no_grad():
+            q_value = self.online_net.calculate_q(state).view(4, 4, 4)
+
+        value = np.zeros((12, 12))
+
+        # Left, Down, Right, Up, Center
+        value[1::3, ::3] += q_value[:, :, 0].cpu().numpy()
+        value[2::3, 1::3] += q_value[:, :, 1].cpu().numpy()
+        value[1::3, 2::3] += q_value[:, :, 2].cpu().numpy()
+        value[::3, 1::3] += q_value[:, :, 3].cpu().numpy()
+        value[1::3, 1::3] += q_value.mean(dim=2).cpu().numpy()
+
+        # ヒートマップ表示
+        fig = plt.figure(figsize=(4, 4))
+        ax = fig.add_subplot(1, 1, 1)
+        mappable0 = plt.imshow(value, cmap=cm.jet, interpolation="bilinear",
+           vmax=abs(value).max(), vmin=-abs(value).max())
+        ax.set_xticks(np.arange(-0.5, 12, 3))
+        ax.set_yticks(np.arange(-0.5, 12, 3))
+        ax.set_xticklabels(range(4 + 1))
+        ax.set_yticklabels(range(4 + 1))
+        ax.grid(which="both")
+
+        # Start: green, Goal: blue, Hole: red
+        ax.plot([1], [1], marker="o", color='g', markersize=40, alpha=0.8)
+        ax.plot([1], [10], marker="o", color='r', markersize=40, alpha=0.8)
+        ax.plot([1], [4], marker="x", color='b', markersize=30, markeredgewidth=10, alpha=0.8)
+        ax.plot([1], [7], marker="x", color='b', markersize=30, markeredgewidth=10, alpha=0.8)
+        ax.text(1, 1.3, 'START', ha='center', size=12, c='w')
+        ax.text(1, 10.3, 'GOAL', ha='center', size=12, c='w')
+
+        fig.colorbar(mappable0, ax=ax, orientation="vertical")
+
+        plt.show()

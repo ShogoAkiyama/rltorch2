@@ -1,5 +1,8 @@
 import torch
 from torch.optim import Adam
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 
 from model import DQN
 from utils import disable_gradients, update_params, calculate_huber_loss
@@ -111,3 +114,41 @@ class DQNAgent(BaseAgent):
         loss = (td_errors**2).mean()
 
         return loss
+
+    def plot(self):
+        state = torch.FloatTensor(
+                    np.eye(self.env.observation_space.n)).to(self.device)
+        with torch.no_grad():
+            q_value = self.online_net.calculate_q(state).view(4, 4, 4)
+
+        value = np.zeros((12, 12))
+
+        # Left, Down, Right, Up, Center
+        value[1::3, ::3] += q_value[:, :, 0].cpu().numpy()
+        value[2::3, 1::3] += q_value[:, :, 1].cpu().numpy()
+        value[1::3, 2::3] += q_value[:, :, 2].cpu().numpy()
+        value[::3, 1::3] += q_value[:, :, 3].cpu().numpy()
+        value[1::3, 1::3] += q_value.mean(dim=2).cpu().numpy()
+
+        # ヒートマップ表示
+        fig = plt.figure(figsize=(4, 4))
+        ax = fig.add_subplot(1, 1, 1)
+        mappable0 = plt.imshow(value, cmap=cm.jet, interpolation="bilinear",
+           vmax=abs(value).max(), vmin=-abs(value).max())
+        ax.set_xticks(np.arange(-0.5, 12, 3))
+        ax.set_yticks(np.arange(-0.5, 12, 3))
+        ax.set_xticklabels(range(4 + 1))
+        ax.set_yticklabels(range(4 + 1))
+        ax.grid(which="both")
+
+        # Start: green, Goal: blue, Hole: red
+        ax.plot([1], [1], marker="o", color='g', markersize=40, alpha=0.8)
+        ax.plot([1], [10], marker="o", color='r', markersize=40, alpha=0.8)
+        ax.plot([1], [4], marker="x", color='b', markersize=30, markeredgewidth=10, alpha=0.8)
+        ax.plot([1], [7], marker="x", color='b', markersize=30, markeredgewidth=10, alpha=0.8)
+        ax.text(1, 1.3, 'START', ha='center', size=12, c='w')
+        ax.text(1, 10.3, 'GOAL', ha='center', size=12, c='w')
+
+        fig.colorbar(mappable0, ax=ax, orientation="vertical")
+
+        plt.show()

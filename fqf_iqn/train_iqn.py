@@ -14,9 +14,8 @@ def run(args):
         config = yaml.load(f, Loader=yaml.SafeLoader)
 
     # Create environments.
-    env = FrozenLakeEnv()
-    test_env = FrozenLakeEnv()
-    print(env)
+    env = FrozenLakeEnv(is_slippery=True, prob=args.prob)
+    test_env = FrozenLakeEnv(is_slippery=True, prob=args.prob)
 
     # Specify the directory to log.
     time = datetime.now().strftime("%Y%m%d-%H%M")
@@ -33,6 +32,7 @@ def run(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--env_id', type=str, default='FrozenLake-v0')
+    parser.add_argument('--prob', type=float, default=1)
     parser.add_argument('--cuda', action='store_true')
     parser.add_argument('--seed', type=int, default=0)
     args = parser.parse_args()

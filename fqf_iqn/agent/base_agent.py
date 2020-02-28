@@ -1,5 +1,6 @@
 import os
 import numpy as np
+
 import torch
 from torch.utils.tensorboard import SummaryWriter
 
@@ -156,9 +157,10 @@ class BaseAgent:
             self.writer.add_scalar(
                 'return/train', self.train_return.get(), 4 * self.steps)
 
-        print(f'Episode: {self.episodes:<4}  '
-              f'episode steps: {episode_steps:<4}  '
-              f'return: {episode_return:<5.1f}')
+        if self.episodes % 1000 == 0:
+            print(f'Episode: {self.episodes:<4}  '
+                  f'episode steps: {episode_steps:<4}  '
+                  f'return: {episode_return:<5.1f}')
 
     def train_step_interval(self):
         self.epsilon_train.step()
@@ -186,7 +188,6 @@ class BaseAgent:
             episode_return = 0.0
             done = False
             while (not done) and episode_steps <= self.max_episode_steps:
-                self.test_env.render()
                 if self.is_greedy(eval=True):
                     action = self.explore()
                 else:
@@ -198,12 +199,16 @@ class BaseAgent:
                 episode_return += reward
                 state = next_state
 
-            self.test_env.render()
             num_episodes += 1
             total_return += episode_return
 
             if num_steps > self.num_eval_steps:
                 break
+
+        print('-' * 60)
+        print('Eval mean_steps: ', int(num_steps / num_episodes),
+              'reward: ', np.round(total_return / num_episodes, 1))
+        print('-' * 60)
 
         mean_return = total_return / num_episodes
 
@@ -214,10 +219,8 @@ class BaseAgent:
         # We log evaluation results along with training frames = 4 * steps.
         self.writer.add_scalar(
             'return/test', mean_return, 4 * self.steps)
-        print('-' * 60)
-        print(f'Num steps: {self.steps:<5}  '
-              f'return: {mean_return:<5.1f}')
-        print('-' * 60)
+
+        self.plot()
 
     def __del__(self):
         self.env.close()

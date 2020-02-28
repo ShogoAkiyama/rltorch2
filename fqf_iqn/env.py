@@ -19,6 +19,13 @@ MAPS = {
         "HFFF",
         "GFFF"
     ],
+    "5x5": [
+        "SFFF",
+        "HFFF",
+        "HFFF",
+        "HFFF",
+        "GFFF"
+    ],
     "8x8": [
         "SFFFFFFF",
         "FFFFFFFF",
@@ -74,8 +81,10 @@ def categorical_sample(prob_n, np_random):
     Each row specifies class probabilities
     """
     prob_n = np.asarray(prob_n)
-    csprob_n = np.cumsum(prob_n)
-    return (csprob_n > np_random.rand()).argmax()
+    i = np.random.choice(list(range(len(prob_n))),
+                         size=1,
+                         p=prob_n/prob_n.sum())[0]
+    return i
 
 
 class FrozenLakeEnv(discrete.DiscreteEnv):
@@ -102,7 +111,7 @@ class FrozenLakeEnv(discrete.DiscreteEnv):
 
     metadata = {'render.modes': ['human', 'ansi']}
 
-    def __init__(self, desc=None, map_name="4x4",is_slippery=True):
+    def __init__(self, desc=None, map_name="4x4", is_slippery=True, prob=1.0):
         if desc is None and map_name is None:
             desc = generate_random_map()
         elif desc is None:
@@ -139,23 +148,48 @@ class FrozenLakeEnv(discrete.DiscreteEnv):
                 for a in range(4):
                     li = P[s][a]   # 参照渡し
                     letter = desc[row, col]
-                    if letter in b'GH':
-                        li.append((1.0, s, 0, True))
+                    if letter == b'G':
+                        rew = 10
+                        done = True
+                        li.append((1.0, s, rew, done))
+                    elif letter == b'H':
+                        rew = -10
+                        done = True
+                        li.append((1.0, s, rew, done))
                     else:
                         if is_slippery:
-                            for b in [(a-1)%4, a, (a+1)%4]:
+                            for b in [a, (a+1) % 4, (a+2) % 4, (a+3) % 4]:
                                 newrow, newcol = inc(row, col, b)
                                 newstate = to_s(newrow, newcol)
                                 newletter = desc[newrow, newcol]
-                                done = bytes(newletter) in b'GH'
-                                rew = float(newletter == b'G')   # reward
-                                li.append((1.0/3.0, newstate, rew, done))
+
+                                if newletter == b'G':
+                                    rew = 10
+                                    done = True
+                                elif newletter == b'H':
+                                    rew = -10
+                                    done = True
+                                else:
+                                    rew = -1
+                                    done = False
+                                if b == a:
+                                    li.append((prob, newstate, rew, done))
+                                else:
+                                    li.append(((1-prob)/3.0, newstate, rew, done))
                         else:
                             newrow, newcol = inc(row, col, a)
                             newstate = to_s(newrow, newcol)
                             newletter = desc[newrow, newcol]
-                            done = bytes(newletter) in b'GH'
-                            rew = float(newletter == b'G')
+
+                            if newletter == b'G':
+                                rew = 10
+                                done = True
+                            elif newletter == b'H':
+                                rew = -10
+                                done = True
+                            else:
+                                rew = -1
+                                done = False
                             li.append((1.0, newstate, rew, done))
 
         super(FrozenLakeEnv, self).__init__(nS, nA, P, isd)
@@ -168,7 +202,7 @@ class FrozenLakeEnv(discrete.DiscreteEnv):
     def step(self, a):
         transitions = self.P[self.s][a]
         i = categorical_sample([t[0] for t in transitions], self.np_random)
-        p, s, r, d= transitions[i]
+        p, s, r, d = transitions[i]
         self.s = s
         self.lastaction = a
         return (np.eye(len(self.isd))[self.s], r, d, {"prob" : p})
@@ -181,10 +215,12 @@ class FrozenLakeEnv(discrete.DiscreteEnv):
         desc = [[c.decode('utf-8') for c in line] for line in desc]
         desc[row][col] = utils.colorize(desc[row][col], "red", highlight=True)
         if self.lastaction is not None:
-            outfile.write("  ({})\n".format(["Left","Down","Right","Up"][self.lastaction]))
+            # print action
+            print("({})\n".format(["Left","Down","Right","Up"][self.lastaction]))
         else:
-            outfile.write("\n")
-        outfile.write("\n".join(''.join(line) for line in desc)+"\n")
+            print("\n")
+        # print map
+        print("\n".join(''.join(line) for line in desc)+"\n")
 
         if mode != 'human':
             with closing(outfile):
