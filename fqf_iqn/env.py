@@ -185,7 +185,7 @@ class FrozenLakeEnv(discrete.DiscreteEnv):
                                     rew = self.reward_min
                                     done = True
                                 else:
-                                    rew = self.reward_min / (nrow*10)
+                                    rew = -10
                                     done = False
                                 if b == a:   # 行動確率
                                     if b == 0:
@@ -208,7 +208,7 @@ class FrozenLakeEnv(discrete.DiscreteEnv):
                                 rew = self.reward_min
                                 done = True
                             else:
-                                rew = self.reward_min / (nrow*10)
+                                rew = -10   #self.reward_min / (nrow*10)
                                 done = False
                             li.append((1.0, newstate, rew, done))
 

@@ -172,10 +172,8 @@ class BaseAgent:
             self.learn()
 
         if self.steps % self.eval_interval == 0:
-            self.online_net.eval()
             self.evaluate()
             self.save_models(os.path.join(self.model_dir, 'final'))
-            self.online_net.train()
 
     def evaluate(self):
         num_episodes = 0
