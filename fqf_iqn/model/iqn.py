@@ -7,7 +7,8 @@ from fqf_iqn.network import DQNBase, CosineEmbeddingNetwork, QuantileNetwork
 class IQN(nn.Module):
 
     def __init__(self, num_channels, num_actions, K=32, num_cosines=32,
-                 embedding_dim=64, dueling_net=False, noisy_net=False):
+                 embedding_dim=64, dueling_net=False, noisy_net=False,
+                 eta0=0, eta1=1):
         super(IQN, self).__init__()
 
         # Feature extractor of DQN.
@@ -26,6 +27,9 @@ class IQN(nn.Module):
         self.dueling_net = dueling_net
         self.noisy_net = noisy_net
 
+        self.eta0 = eta0
+        self.eta1 = eta1
+
     def calculate_state_embeddings(self, states):
         return self.dqn_net(states)
 
@@ -38,7 +42,7 @@ class IQN(nn.Module):
         tau_embeddings = self.cosine_net(taus)
         return self.quantile_net(state_embeddings, tau_embeddings)
 
-    def calculate_q(self, states=None, state_embeddings=None. beta=[]):
+    def calculate_q(self, states=None, state_embeddings=None, eval=False):
         assert states is not None or state_embeddings is not None
         batch_size = states.shape[0] if states is not None\
             else state_embeddings.shape[0]
@@ -46,10 +50,17 @@ class IQN(nn.Module):
         if state_embeddings is None:
             state_embeddings = self.dqn_net(states)
 
-        # Sample fractions.
-        taus = torch.rand(
-            batch_size, self.K, dtype=state_embeddings.dtype,
-            device=state_embeddings.device)
+        if eval:
+            # Sample fractions.
+            taus = torch.linspace(
+                self.eta0, self.eta1, self.K,
+                device=state_embeddings.device).repeat(batch_size, 1)
+        else:
+            # Sample fractions.
+            taus = torch.rand(
+                batch_size, self.K, dtype=state_embeddings.dtype,
+                device=state_embeddings.device)
+            taus = (self.eta1 - self.eta0) * taus + self.eta0
 
         # Calculate quantiles.
         quantiles = self.calculate_quantiles(

@@ -29,11 +29,11 @@ class DQNAgent(BaseAgent):
 
         # Online network.
         self.online_net = DQN(
-            num_channels=env.observation_space.n,
+            num_channels=env.nrow*env.ncol,
             num_actions=self.num_actions).to(self.device)
         # Target network.
         self.target_net = DQN(
-            num_channels=env.observation_space.n,
+            num_channels=env.nrow*env.ncol,
             num_actions=self.num_actions).to(self.device)
 
         # Copy parameters of the learning network to the target network.
@@ -116,12 +116,16 @@ class DQNAgent(BaseAgent):
         return loss
 
     def plot(self):
-        state = torch.FloatTensor(
-                    np.eye(self.env.observation_space.n)).to(self.device)
-        with torch.no_grad():
-            q_value = self.online_net.calculate_q(state).view(4, 4, 4)
+        state_size = 3
+        q_nrow = self.env.nrow * state_size
+        q_ncol = self.env.ncol * state_size
 
-        value = np.zeros((12, 12))
+        state = torch.FloatTensor(
+                    np.eye(self.env.nrow*self.env.ncol)).to(self.device)
+        with torch.no_grad():
+            q_value = self.online_net.calculate_q(state).view(self.env.nrow, self.env.ncol, 4)
+
+        value = np.zeros((q_nrow, q_ncol))
 
         # Left, Down, Right, Up, Center
         value[1::3, ::3] += q_value[:, :, 0].cpu().numpy()
@@ -131,23 +135,31 @@ class DQNAgent(BaseAgent):
         value[1::3, 1::3] += q_value.mean(dim=2).cpu().numpy()
 
         # ヒートマップ表示
-        fig = plt.figure(figsize=(4, 4))
+        fig = plt.figure(figsize=(6, 12))
         ax = fig.add_subplot(1, 1, 1)
         mappable0 = plt.imshow(value, cmap=cm.jet, interpolation="bilinear",
            vmax=abs(value).max(), vmin=-abs(value).max())
-        ax.set_xticks(np.arange(-0.5, 12, 3))
-        ax.set_yticks(np.arange(-0.5, 12, 3))
-        ax.set_xticklabels(range(4 + 1))
-        ax.set_yticklabels(range(4 + 1))
+        ax.set_xticks(np.arange(-0.5, q_ncol, 3))
+        ax.set_yticks(np.arange(-0.5, q_nrow, 3))
+        ax.set_xticklabels(range(self.env.ncol + 1))
+        ax.set_yticklabels(range(self.env.nrow + 1))
         ax.grid(which="both")
 
         # Start: green, Goal: blue, Hole: red
-        ax.plot([1], [1], marker="o", color='g', markersize=40, alpha=0.8)
-        ax.plot([1], [10], marker="o", color='r', markersize=40, alpha=0.8)
-        ax.plot([1], [4], marker="x", color='b', markersize=30, markeredgewidth=10, alpha=0.8)
-        ax.plot([1], [7], marker="x", color='b', markersize=30, markeredgewidth=10, alpha=0.8)
+        ax.plot([1], [1],  marker="o", color='g', markersize=40, alpha=0.8)
+        ax.plot([1], [4],  marker="x", color='b', markersize=30, markeredgewidth=10, alpha=0.8)
+        ax.plot([1], [7],  marker="x", color='b', markersize=30, markeredgewidth=10, alpha=0.8)
+        ax.plot([1], [10], marker="x", color='b', markersize=30, markeredgewidth=10, alpha=0.8)
+        ax.plot([1], [13], marker="x", color='b', markersize=30, markeredgewidth=10, alpha=0.8)
+        ax.plot([1], [16], marker="x", color='b', markersize=30, markeredgewidth=10, alpha=0.8)
+        ax.plot([1], [19], marker="x", color='b', markersize=30, markeredgewidth=10, alpha=0.8)
+        ax.plot([1], [22], marker="x", color='b', markersize=30, markeredgewidth=10, alpha=0.8)
+        ax.plot([1], [25], marker="x", color='b', markersize=30, markeredgewidth=10, alpha=0.8)
+        ax.plot([1], [28], marker="x", color='b', markersize=30, markeredgewidth=10, alpha=0.8)
+        ax.plot([1], [31], marker="x", color='b', markersize=30, markeredgewidth=10, alpha=0.8)
+        ax.plot([1], [34], marker="o", color='r', markersize=40, alpha=0.8)
         ax.text(1, 1.3, 'START', ha='center', size=12, c='w')
-        ax.text(1, 10.3, 'GOAL', ha='center', size=12, c='w')
+        ax.text(1, 34.3, 'GOAL', ha='center', size=12, c='w')
 
         fig.colorbar(mappable0, ax=ax, orientation="vertical")
 

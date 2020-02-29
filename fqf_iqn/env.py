@@ -36,6 +36,20 @@ MAPS = {
         "FHFFHFHF",
         "FFFHFFFG"
     ],
+    "12x4": [
+        "SFFF",
+        "HFFF",
+        "HFFF",
+        "HFFF",
+        "HFFF",
+        "HFFF",
+        "HFFF",
+        "HFFF",
+        "HFFF",
+        "HFFF",
+        "HFFF",
+        "GFFF",
+    ],
 }
 
 
@@ -111,14 +125,15 @@ class FrozenLakeEnv(discrete.DiscreteEnv):
 
     metadata = {'render.modes': ['human', 'ansi']}
 
-    def __init__(self, desc=None, map_name="4x4", is_slippery=True, prob=1.0):
+    def __init__(self, desc=None, map_name="12x4", is_slippery=True, prob=1.0):
         if desc is None and map_name is None:
             desc = generate_random_map()
         elif desc is None:
             desc = MAPS[map_name]
         self.desc = desc = np.asarray(desc,dtype='c')
         self.nrow, self.ncol = nrow, ncol = desc.shape
-        self.reward_range = (0, 1)
+        self.reward_max = nrow*10
+        self.reward_min = -nrow*10
 
         nA = 4
         nS = nrow * ncol
@@ -149,11 +164,11 @@ class FrozenLakeEnv(discrete.DiscreteEnv):
                     li = P[s][a]   # 参照渡し
                     letter = desc[row, col]
                     if letter == b'G':
-                        rew = 10
+                        rew = self.reward_max
                         done = True
                         li.append((1.0, s, rew, done))
                     elif letter == b'H':
-                        rew = -10
+                        rew = self.reward_min
                         done = True
                         li.append((1.0, s, rew, done))
                     else:
@@ -164,31 +179,36 @@ class FrozenLakeEnv(discrete.DiscreteEnv):
                                 newletter = desc[newrow, newcol]
 
                                 if newletter == b'G':
-                                    rew = 10
+                                    rew = self.reward_max
                                     done = True
                                 elif newletter == b'H':
-                                    rew = -10
+                                    rew = self.reward_min
                                     done = True
                                 else:
-                                    rew = -1
+                                    rew = self.reward_min / (nrow*10)
                                     done = False
-                                if b == a:
-                                    li.append((prob, newstate, rew, done))
+                                if b == a:   # 行動確率
+                                    if b == 0:
+                                        li.append((1, newstate, rew, done))
+                                    else:
+                                        li.append((prob, newstate, rew, done))
+                                elif b == 0:   # 左の風
+                                    li.append((1-prob, newstate, rew, done))
                                 else:
-                                    li.append(((1-prob)/3.0, newstate, rew, done))
+                                    li.append((0, newstate, rew, done))
                         else:
                             newrow, newcol = inc(row, col, a)
                             newstate = to_s(newrow, newcol)
                             newletter = desc[newrow, newcol]
 
                             if newletter == b'G':
-                                rew = 10
+                                rew = self.reward_max
                                 done = True
                             elif newletter == b'H':
-                                rew = -10
+                                rew = self.reward_min
                                 done = True
                             else:
-                                rew = -1
+                                rew = self.reward_min / (nrow*10)
                                 done = False
                             li.append((1.0, newstate, rew, done))
 

@@ -32,7 +32,7 @@ def run(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--env_id', type=str, default='FrozenLake-v0')
-    parser.add_argument('--prob', type=float, default=1)
+    parser.add_argument('--prob', type=float, default=0.9)
     parser.add_argument('--cuda', action='store_true')
     parser.add_argument('--seed', type=int, default=0)
     args = parser.parse_args()
