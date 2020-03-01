@@ -179,3 +179,67 @@ class QuantileNetwork(nn.Module):
 
         return quantiles.view(batch_size, num_taus, self.num_actions)
 
+
+class NoisyLinear(nn.Module):
+    def __init__(self, in_features, out_features, std_init=0.5):
+        super(NoisyLinear, self).__init__()
+
+        # Parameters of the layer.
+        self.weight_mu = nn.Parameter(
+            torch.FloatTensor(out_features, in_features))
+        self.weight_std = nn.Parameter(
+            torch.FloatTensor(out_features, in_features))
+        self.bias_mu = nn.Parameter(
+            torch.FloatTensor(out_features))
+        self.bias_std = nn.Parameter(
+            torch.FloatTensor(out_features))
+
+        # Non-parameters.
+        self.register_buffer(
+            'weight_epsilon', torch.FloatTensor(out_features, in_features))
+        self.register_buffer(
+            'bias_epsilon', torch.FloatTensor(out_features))
+        self.register_buffer(
+            'sample_weight_in', torch.FloatTensor(in_features))
+        self.register_buffer(
+            'sample_weight_out', torch.FloatTensor(out_features))
+        self.register_buffer(
+            'sample_bias_out', torch.FloatTensor(out_features))
+
+        self.reset_parameters()
+        self.reset_noise()
+
+        self.in_features = in_features
+        self.out_features = out_features
+        self.std_init = std_init
+
+    def reset_parameters(self):
+        mu_range = 1 / np.sqrt(self.in_features)
+        self.weight_mu.data.uniform_(-mu_range, mu_range)
+        self.bias_mu.data.uniform_(-mu_range, mu_range)
+        self.weight_std.data.fill_(
+            self.std_init / np.sqrt(self.in_features))
+        self.bias_std.data.fill_(
+            self.std_init / np.sqrt(self.out_features))
+
+    def reset_noise(self):
+        self.sample_weight_in = self._scale_noise(self.sample_weight_in)
+        self.sample_weight_out = self._scale_noise(self.sample_weight_out)
+        self.sample_bias_out = self._scale_noise(self.sample_bias_out)
+
+        self.weight_epsilon.copy_(
+            self.sample_weight_out.ger(self.sample_weight_in))
+        self.bias_epsilon.copy_(self.sample_bias_out)
+
+    def _scale_noise(self, x):
+        return x.normal_().sign().mul(x.abs().sqrt())
+
+    def forward(self, x):
+        if self.training:
+            weight = self.weight_mu + self.weight_std * self.weight_epsilon
+            bias = self.bias_mu + self.bias_std * self.bias_epsilon
+        else:
+            weight = self.weight_mu
+            bias = self.bias_mu
+
+        return F.linear(x, weight, bias)

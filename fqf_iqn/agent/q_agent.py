@@ -163,7 +163,7 @@ class QAgent:
                 break
 
         print(self.online_net.copy().reshape(self.env.nrow, self.env.ncol, 4)[0][1])
-        # self.plot()
+        self.plot()
 
     def plot(self):
         state_size = 3
