@@ -3,12 +3,12 @@ import yaml
 import argparse
 from datetime import datetime
 
-from agent.q_agent import QAgent
+from agent.q_table_agent import QAgent
 from env import FrozenLakeEnv
 
 
 def run(args):
-    with open(os.path.join('config', 'q.yaml')) as f:
+    with open(os.path.join('config', 'q_table.yaml')) as f:
         config = yaml.load(f, Loader=yaml.SafeLoader)
 
     # Create environments.

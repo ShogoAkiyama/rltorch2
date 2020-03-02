@@ -1,14 +1,14 @@
-import torch
-import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.cm as cm
 import os
+import numpy as np
 
-from utils import RunningMeanStats, LinearAnneaer
+import torch
 from torch.utils.tensorboard import SummaryWriter
 
+from memory import LazyMultiStepMemory
+from utils import RunningMeanStats, LinearAnneaer
 
-class QAgent:
+
+class TableBaseAgent:
 
     def __init__(self, env, test_env, log_dir, num_steps=5*(10**7),
                  lr=5e-5, gamma=0.99, multi_step=1, update_interval=4,
@@ -43,23 +43,55 @@ class QAgent:
         self.episodes = 0
         self.learning_steps = 0
 
-        # Online network.
-        self.online_net = np.zeros((self.env.nrow * self.env.ncol, 4))
-        # Target network.
-        self.target_net = np.zeros((self.env.nrow * self.env.ncol, 4))
-
-        # Copy parameters of the learning network to the target network.
-        self.update_target()
-        # Disable calculations of gradients of the target network.
-
     def run(self):
         while True:
             self.train_episode()
             if self.steps > self.num_steps:
                 break
 
-    def train_episode(self):
+    def is_update(self):
+        return self.steps % self.update_interval == 0\
+            and self.steps >= self.start_steps
 
+    def is_greedy(self, eval=False):
+        if eval:
+            return np.random.rand() < self.epsilon_eval
+        else:
+            return self.steps < self.start_steps\
+                or np.random.rand() < self.epsilon_train.get()
+
+    def update_target(self):
+        self.target_net = self.online_net.copy()
+
+    def explore(self):
+        # Act with randomness.
+        action = self.env.action_space.sample()
+        return action
+
+    def exploit(self, state):
+        raise NotImplementedError
+
+    def learn(self):
+        raise NotImplementedError
+
+    def save_models(self, save_dir):
+        if not os.path.exists(save_dir):
+            os.makedirs(save_dir)
+        torch.save(
+            self.online_net.state_dict(),
+            os.path.join(save_dir, 'online_net.pth'))
+        torch.save(
+            self.target_net.state_dict(),
+            os.path.join(save_dir, 'target_net.pth'))
+
+    def load_models(self, save_dir):
+        self.online_net.load_state_dict(torch.load(
+            os.path.join(save_dir, 'online_net.pth')))
+        self.target_net.load_state_dict(torch.load(
+            os.path.join(save_dir, 'target_net.pth')))
+
+    def train_episode(self):
+   
         self.episodes += 1
         episode_return = 0.
         episode_steps = 0
@@ -107,33 +139,6 @@ class QAgent:
         if self.steps % self.eval_interval == 0:
             self.evaluate()
 
-    def is_greedy(self, eval=False):
-        if eval:
-            return np.random.rand() < self.epsilon_eval
-        else:
-            return self.steps < self.start_steps\
-                or np.random.rand() < self.epsilon_train.get()
-
-    def update_target(self):
-        self.target_net = self.online_net.copy()
-
-    def explore(self):
-        # Act with randomness.
-        action = self.env.action_space.sample()
-        return action
-
-    def exploit(self, state):
-        # Act without randomness.
-        action = self.online_net[state.argmax()].argmax()
-        return action
-
-    def learn(self, state, action, reward, next_state, done):
-        self.learning_steps += 1
-        td_error = (reward + (1-done) * self.gamma * \
-                        max(self.target_net[next_state.argmax()]) - self.online_net[state.argmax(), action])
-
-        self.online_net[state.argmax(), action] += self.lr * td_error
-
     def evaluate(self):
         num_episodes = 0
         num_steps = 0
@@ -162,15 +167,14 @@ class QAgent:
             if num_steps > self.num_eval_steps:
                 break
 
-        print(self.online_net.copy().reshape(self.env.nrow, self.env.ncol, 4)[0][1])
-        self.plot()
+        # print(self.online_net.copy().reshape(self.env.nrow, self.env.ncol, 4)[0][1])
 
-    def plot(self):
+    def plot(self, q_value):
         state_size = 3
         q_nrow = self.env.nrow * state_size
         q_ncol = self.env.ncol * state_size
 
-        q_value = self.online_net.copy().reshape(self.env.nrow, self.env.ncol, 4)
+        # q_value = self.online_net.copy().reshape(self.env.nrow, self.env.ncol, 4)
 
         value = np.zeros((q_nrow, q_ncol))
 
@@ -211,3 +215,8 @@ class QAgent:
         fig.colorbar(mappable0, ax=ax, orientation="vertical")
 
         plt.show()
+
+    def __del__(self):
+        self.env.close()
+        self.test_env.close()
+        self.writer.close()
