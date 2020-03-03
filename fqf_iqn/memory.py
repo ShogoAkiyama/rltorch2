@@ -106,8 +106,8 @@ class LazyMemory(dict):
             states[i, ...] = self['state'][_index]
             next_states[i, ...] = self['next_state'][_index]
 
-        states = torch.FloatTensor(states).to(self.device)
-        next_states = torch.FloatTensor(next_states).to(self.device)
+        states = torch.LongTensor(states).to(self.device)
+        next_states = torch.LongTensor(next_states).to(self.device)
         actions = torch.LongTensor(self['action'][indices]).to(self.device)
         rewards = torch.FloatTensor(self['reward'][indices]).to(self.device)
         dones = torch.FloatTensor(self['done'][indices]).to(self.device)

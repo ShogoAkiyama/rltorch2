@@ -241,13 +241,16 @@ class FrozenLakeEnv(discrete.DiscreteEnv):
     def reset(self):
         self.s = categorical_sample(self.isd)
         self.lastaction = None
-        return torch.eye(self.nrow * self.ncol, device=self.device)[self.s]
+        # return torch.eye(self.nrow * self.ncol, device=self.device)[self.s]
+        return self.s
 
     def step(self, a):
-        transitions = self.P[self.s.argmax().item()][a]
+        # transitions = self.P[self.s.argmax().item()][a]
+        transitions = self.P[self.s][a]
         i = categorical_sample([t[0] for t in transitions])
         p, s, r, d = transitions[i]
-        self.s = torch.eye(self.nrow * self.ncol, device=self.device)[s]
+        # self.s = torch.eye(self.nrow * self.ncol, device=self.device)[s]
+        self.s = s
         self.lastaction = a
         return (self.s, r, d, {"prob": p})
 

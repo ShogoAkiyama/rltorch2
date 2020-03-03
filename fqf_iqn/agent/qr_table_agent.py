@@ -26,18 +26,15 @@ class QRTableAgent(TableBaseAgent):
         # Online network.
         self.online_net = torch.zeros((
             self.env.nrow * self.env.ncol,
-            self.num_taus, 4))
+            self.num_taus, 4), requires_grad=True)
 
     def exploit(self, state):
         # Act without randomness.
         quantiles = self.online_net[state.argmax()]
         quantiles = quantiles.unsqueeze(0)
-        # quantiles = quantiles.reshape(1, self.num_taus, 4)
 
         probs = (quantiles[:, :, None] <= quantiles[:, None, :]
                  ).float().mean(axis=1)
-        # probs = (quantiles[:, :, None] <= quantiles[:, None, :]
-        #          ).mean(axis=1)
 
         assert probs.shape == (
             1, self.num_taus, 4)
