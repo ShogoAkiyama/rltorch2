@@ -52,19 +52,19 @@ MAPS = {
         "HFFF",
         "GFFF",
     ],
-    "12x8": [
-        "SFFFFFFF",
-        "HFFFFFFF",
-        "HFFFFFFF",
-        "HFFFFFFF",
-        "HFFFFFFF",
-        "HFFFFFFF",
-        "HFFFFFFF",
-        "HFFFFFFF",
-        "HFFFFFFF",
-        "HFFFFFFF",
-        "HFFFFFFF",
-        "GFFFFFFF",
+    "12x6": [
+        "SFFFFF",
+        "HFFFFF",
+        "HFFFFF",
+        "HFFFFF",
+        "HFFFFF",
+        "HFFFFF",
+        "HFFFFF",
+        "HFFFFF",
+        "HFFFFF",
+        "HFFFFF",
+        "HFFFFF",
+        "GFFFFF",
     ],
 }
 
@@ -141,7 +141,7 @@ class FrozenLakeEnv(discrete.DiscreteEnv):
 
     metadata = {'render.modes': ['human', 'ansi']}
 
-    def __init__(self, desc=None, map_name="12x8", is_slippery=True, prob=1.0, cuda=True):
+    def __init__(self, desc=None, map_name="12x6", is_slippery=True, prob=1.0, cuda=True):
         if desc is None and map_name is None:
             desc = generate_random_map()
         elif desc is None:
@@ -152,9 +152,9 @@ class FrozenLakeEnv(discrete.DiscreteEnv):
 
         self.desc = desc = np.asarray(desc,dtype='c')
         self.nrow, self.ncol = nrow, ncol = desc.shape
-        self.reward_max = torch.FloatTensor([100]).to(self.device)
-        self.reward_min = torch.FloatTensor([-100]).to(self.device)
-        self.step_reward = torch.FloatTensor([-5]).to(self.device)
+        self.reward_max = 100
+        self.reward_min = -100
+        self.step_reward = -5
 
         nA = 4
         nS = nrow * ncol
@@ -187,29 +187,20 @@ class FrozenLakeEnv(discrete.DiscreteEnv):
                     letter = desc[row, col]
                     if letter == b'G':
                         rew = self.reward_max
-                        done = torch.ByteTensor(1).to(self.device)
+                        done = True
 
-                        li.append((1.0,
-                                   torch.eye(
-                                       self.nrow * self.ncol, device=self.device)[s]
-                                   , rew, done))
+                        li.append((1.0, s, rew, done))
                     elif letter == b'H':
                         rew = self.reward_min
-                        done = torch.ByteTensor(1).to(self.device)
+                        done = True
 
-                        li.append((1.0,
-                                   torch.eye(
-                                       self.nrow * self.ncol, device=self.device)[s]
-                                   , rew, done))
+                        li.append((1.0, s, rew, done))
                     else:
                         if is_slippery:
                             for b in [a, (a+1) % 4, (a+2) % 4, (a+3) % 4]:
                                 newrow, newcol = inc(row, col, b)
                                 newstate = to_s(newrow, newcol)
                                 newletter = desc[newrow, newcol]
-
-                                newstate = torch.eye(
-                                    self.nrow*self.ncol, device=self.device)[newstate]
 
                                 if newletter == b'G':
                                     rew = self.reward_max
@@ -250,13 +241,13 @@ class FrozenLakeEnv(discrete.DiscreteEnv):
     def reset(self):
         self.s = categorical_sample(self.isd)
         self.lastaction = None
-        return self.s
+        return torch.eye(self.nrow * self.ncol, device=self.device)[self.s]
 
     def step(self, a):
         transitions = self.P[self.s.argmax().item()][a]
         i = categorical_sample([t[0] for t in transitions])
         p, s, r, d = transitions[i]
-        self.s = s
+        self.s = torch.eye(self.nrow * self.ncol, device=self.device)[s]
         self.lastaction = a
         return (self.s, r, d, {"prob": p})
 

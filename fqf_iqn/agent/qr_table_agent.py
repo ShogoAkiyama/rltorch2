@@ -26,22 +26,18 @@ class QRTableAgent(TableBaseAgent):
         # Online network.
         self.online_net = torch.zeros((
             self.env.nrow * self.env.ncol,
-            self.num_taus, 4)).to(self.device)
-        # # Target network.
-        # self.target_net = torch.zeros((
-        #     self.env.nrow * self.env.ncol,
-        #     self.num_taus, 4)).to(self.device)
-
-        # Copy parameters of the learning network to the target network.
-        # self.update_target()
+            self.num_taus, 4))
 
     def exploit(self, state):
         # Act without randomness.
         quantiles = self.online_net[state.argmax()]
         quantiles = quantiles.unsqueeze(0)
+        # quantiles = quantiles.reshape(1, self.num_taus, 4)
 
         probs = (quantiles[:, :, None] <= quantiles[:, None, :]
                  ).float().mean(axis=1)
+        # probs = (quantiles[:, :, None] <= quantiles[:, None, :]
+        #          ).mean(axis=1)
 
         assert probs.shape == (
             1, self.num_taus, 4)
@@ -57,10 +53,13 @@ class QRTableAgent(TableBaseAgent):
 
     def train_step_interval(self):
         super().train_step_interval()
+        # quantiles = self.online_net.copy()
         quantiles = self.online_net.clone()
 
         probs = (quantiles[:, :, None, ] <= quantiles[:, None, :]
                  ).float().mean(axis=1)
+        # probs = (quantiles[:, :, None, ] <= quantiles[:, None, :]
+        #          ).mean(axis=1)
 
         if self.sensitive:
             q_value = (quantiles * (probs <= self.c)
@@ -70,15 +69,19 @@ class QRTableAgent(TableBaseAgent):
                        ).sum(axis=1) / self.N
 
         q_value = q_value.view(self.env.nrow, self.env.ncol, 4).cpu().numpy()
+        # q_value = q_value.reshape(self.env.nrow, self.env.ncol, 4)
 
         if self.steps % self.eval_interval == 0:
+            print("plot")
             self.plot(q_value)
 
     def learn(self, state, action, reward, next_state, done):
         self.learning_steps += 1
         N = int(self.N)
-        p = torch.randint(0, self.num_taus, (N, 1)).to(self.device)
-        q = torch.randint(0, self.num_taus, (N, 1)).to(self.device)
+        p = np.random.randint(0, self.num_taus, N)
+        q = np.random.randint(0, self.num_taus, N)
+        # p = torch.randint(0, self.num_taus, (N, 1)).to(self.device)
+        # q = torch.randint(0, self.num_taus, (N, 1)).to(self.device)
         next_action = self.online_net[state.argmax()].mean(
             axis=0).argmax().item()
         td_error = reward + (1 - done) * self.gamma \
@@ -86,11 +89,3 @@ class QRTableAgent(TableBaseAgent):
                    - self.online_net[state.argmax(), p, action]
 
         self.online_net[state.argmax(), p, action] += self.lr * td_error
-
-        # for i in range(N):
-        #     td_error = reward + (1-done) * self.gamma \
-        #         * self.online_net[next_state.argmax(), :, next_action][q[i]] \
-        #         - self.online_net[state.argmax(), p[i], action]
-        #
-        #     self.online_net[state.argmax(), p[i], action] += self.lr*td_error.item()
-

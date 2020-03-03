@@ -120,7 +120,7 @@ class TableBaseAgent:
 
             self.steps += 1
             episode_steps += 1
-            episode_return += reward.item()
+            episode_return += reward
             state = next_state
 
             self.train_step_interval()
@@ -166,7 +166,7 @@ class TableBaseAgent:
                 next_state, reward, done, _ = self.test_env.step(action)
                 num_steps += 1
                 episode_steps += 1
-                episode_return += reward.item()
+                episode_return += reward
                 state = next_state
 
             num_episodes += 1

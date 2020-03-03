@@ -39,6 +39,7 @@ class QAgent(TableBaseAgent):
         self.learning_steps += 1
         # print(next_state)
         td_error = (reward + (1-done) * self.gamma * \
-                    torch.max(self.online_net[next_state.argmax()]) - self.online_net[state.argmax(), action])
+                    torch.max(self.online_net[next_state.argmax()]) \
+                    - self.online_net[state.argmax(), action])
 
         self.online_net[state.argmax(), action] += self.lr * td_error.item()
