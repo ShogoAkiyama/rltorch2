@@ -1,11 +1,6 @@
 import torch
 import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.cm as cm
-import os
 
-from utils import RunningMeanStats, LinearAnneaer
-from torch.utils.tensorboard import SummaryWriter
 
 from .table_base_agent import TableBaseAgent
 
@@ -24,21 +19,26 @@ class QAgent(TableBaseAgent):
             eval_interval, num_eval_steps, max_episode_steps, seed)
 
         # Online network.
-        self.online_net = np.zeros((self.env.nrow * self.env.ncol, 4))
-        # Target network.
-        self.target_net = np.zeros((self.env.nrow * self.env.ncol, 4))
-
-        # Copy parameters of the learning network to the target network.
-        self.update_target()
+        self.online_net = torch.zeros((
+            self.env.nrow * self.env.ncol, 4)).to(self.device)
 
     def exploit(self, state):
         # Act without randomness.
-        action = self.online_net[state.argmax()].argmax()
+        action = self.online_net[state.argmax()].argmax().item()
         return action
+
+    def train_step_interval(self):
+        super().train_step_interval()
+        q_value = self.online_net.clone().view(
+            self.env.nrow, self.env.ncol, 4).cpu().numpy()
+
+        if self.steps % self.eval_interval == 0:
+            self.plot(q_value)
 
     def learn(self, state, action, reward, next_state, done):
         self.learning_steps += 1
+        # print(next_state)
         td_error = (reward + (1-done) * self.gamma * \
-                        max(self.target_net[next_state.argmax()]) - self.online_net[state.argmax(), action])
+                    torch.max(self.online_net[next_state.argmax()]) - self.online_net[state.argmax(), action])
 
-        self.online_net[state.argmax(), action] += self.lr * td_error
+        self.online_net[state.argmax(), action] += self.lr * td_error.item()

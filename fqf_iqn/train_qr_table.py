@@ -12,13 +12,13 @@ def run(args):
         config = yaml.load(f, Loader=yaml.SafeLoader)
 
     # Create environments.
-    env = FrozenLakeEnv(is_slippery=True, prob=args.prob)
-    test_env = FrozenLakeEnv(is_slippery=True, prob=args.prob)
+    env = FrozenLakeEnv(is_slippery=True, prob=args.prob, cuda=args.cuda)
+    test_env = FrozenLakeEnv(is_slippery=True, prob=args.prob, cuda=args.cuda)
 
     # Specify the directory to log.
     time = datetime.now().strftime("%Y%m%d-%H%M")
     log_dir = os.path.join(
-        'logs', args.env_id, f'Q-{args.seed}-{time}')
+        'logs', args.env_id, f'QR-{args.seed}-{time}')
 
     # Create the agent and run.
     agent = QRTableAgent(
@@ -32,5 +32,6 @@ if __name__ == '__main__':
     parser.add_argument('--prob', type=float, default=0.9)
     parser.add_argument('--cuda', action='store_true')
     parser.add_argument('--seed', type=int, default=0)
+    parser.add_argument('--sensitive', action='store_true')
     args = parser.parse_args()
     run(args)

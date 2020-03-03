@@ -12,8 +12,8 @@ def run(args):
         config = yaml.load(f, Loader=yaml.SafeLoader)
 
     # Create environments.
-    env = FrozenLakeEnv(is_slippery=True, prob=args.prob)
-    test_env = FrozenLakeEnv(is_slippery=True, prob=args.prob)
+    env = FrozenLakeEnv(is_slippery=True, prob=args.prob, cuda=args.cuda)
+    test_env = FrozenLakeEnv(is_slippery=True, prob=args.prob, cuda=args.cuda)
 
     # Specify the directory to log.
     time = datetime.now().strftime("%Y%m%d-%H%M")

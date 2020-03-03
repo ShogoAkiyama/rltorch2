@@ -3,8 +3,12 @@ import numpy as np
 
 import torch
 from torch.utils.tensorboard import SummaryWriter
+import matplotlib.pyplot as plt
+import matplotlib.cm as cm
+import os
 
-from memory import LazyMultiStepMemory
+from torch.utils.tensorboard import SummaryWriter
+
 from utils import RunningMeanStats, LinearAnneaer
 
 
@@ -15,10 +19,13 @@ class TableBaseAgent:
                  target_update_interval=10000, start_steps=50000, epsilon_train=0.01,
                  epsilon_eval=0.001, epsilon_decay_steps=250000, double_q_learning=False,
                  log_interval=100, eval_interval=250000, num_eval_steps=125000,
-                 max_episode_steps=27000, seed=0):
+                 max_episode_steps=27000, seed=0, cuda=True):
 
         self.env = env
         self.test_env = test_env
+
+        self.device = torch.device(
+            "cuda" if cuda and torch.cuda.is_available() else "cpu")
 
         self.start_steps = start_steps
         self.max_episode_steps = max_episode_steps
@@ -36,6 +43,7 @@ class TableBaseAgent:
         self.eval_interval = eval_interval
         self.summary_dir = os.path.join(log_dir, 'summary')
 
+        self.log_dir = log_dir
         self.writer = SummaryWriter(log_dir=self.summary_dir)
         self.train_return = RunningMeanStats(log_interval)
 
@@ -60,8 +68,8 @@ class TableBaseAgent:
             return self.steps < self.start_steps\
                 or np.random.rand() < self.epsilon_train.get()
 
-    def update_target(self):
-        self.target_net = self.online_net.copy()
+    # def update_target(self):
+    #     self.target_net = self.online_net.copy()
 
     def explore(self):
         # Act with randomness.
@@ -112,7 +120,7 @@ class TableBaseAgent:
 
             self.steps += 1
             episode_steps += 1
-            episode_return += reward
+            episode_return += reward.item()
             state = next_state
 
             self.train_step_interval()
@@ -133,8 +141,8 @@ class TableBaseAgent:
     def train_step_interval(self):
         self.epsilon_train.step()
 
-        if self.steps % self.target_update_interval == 0:
-            self.update_target()
+        # if self.steps % self.target_update_interval == 0:
+        #     self.update_target()
 
         if self.steps % self.eval_interval == 0:
             self.evaluate()
@@ -158,7 +166,7 @@ class TableBaseAgent:
                 next_state, reward, done, _ = self.test_env.step(action)
                 num_steps += 1
                 episode_steps += 1
-                episode_return += reward
+                episode_return += reward.item()
                 state = next_state
 
             num_episodes += 1
@@ -167,14 +175,16 @@ class TableBaseAgent:
             if num_steps > self.num_eval_steps:
                 break
 
+        print('-' * 60)
+        print('Eval mean_steps: ', int(num_steps / num_episodes),
+              'reward: ', np.round(total_return / num_episodes, 1))
+        print('-' * 60)
         # print(self.online_net.copy().reshape(self.env.nrow, self.env.ncol, 4)[0][1])
 
     def plot(self, q_value):
         state_size = 3
         q_nrow = self.env.nrow * state_size
         q_ncol = self.env.ncol * state_size
-
-        # q_value = self.online_net.copy().reshape(self.env.nrow, self.env.ncol, 4)
 
         value = np.zeros((q_nrow, q_ncol))
 
@@ -214,7 +224,10 @@ class TableBaseAgent:
 
         fig.colorbar(mappable0, ax=ax, orientation="vertical")
 
-        plt.show()
+        # plt.show()
+        plt.savefig(
+            self.log_dir+'/'+
+            str(self.episodes)+'.png')
 
     def __del__(self):
         self.env.close()
