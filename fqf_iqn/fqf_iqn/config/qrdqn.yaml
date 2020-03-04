@@ -2,7 +2,7 @@ num_steps: 50000000  # It equals to 200M frames.
 batch_size: 32
 num_taus: 64
 kappa: 1.0
-quantile_lr: 5.e-5
+quantile_lr: 5.e-1
 memory_size: 100000
 gamma: 0.99
 multi_step: 1
@@ -12,7 +12,7 @@ start_steps: 50000
 epsilon_train: 0.01
 epsilon_eval: 0.001
 epsilon_decay_steps: 250000  # It equals to 1M frames.
-double_q_learning: False
+double_q_learning: True
 log_interval: 100
 eval_interval: 100000
 num_eval_steps: 1000  # It equals to 500k frames.

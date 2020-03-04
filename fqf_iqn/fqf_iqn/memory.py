@@ -97,14 +97,14 @@ class LazyMemory(dict):
         bias = -self._p if self._n == self.capacity else 0
 
         states = np.empty(
-            (batch_size, self.state_shape), dtype=np.int64)
+            (batch_size), dtype=np.int64)
         next_states = np.empty(
-            (batch_size, self.state_shape), dtype=np.int64)
+            (batch_size), dtype=np.int64)
 
         for i, index in enumerate(indices):
             _index = np.mod(index+bias, self.capacity)
-            states[i, ...] = self['state'][_index]
-            next_states[i, ...] = self['next_state'][_index]
+            states[i] = self['state'][_index]
+            next_states[i] = self['next_state'][_index]
 
         states = torch.LongTensor(states).to(self.device)
         next_states = torch.LongTensor(next_states).to(self.device)

@@ -24,7 +24,7 @@ class QAgent(TableBaseAgent):
 
     def exploit(self, state):
         # Act without randomness.
-        action = self.online_net[state.argmax()].argmax().item()
+        action = self.online_net[state].argmax().item()
         return action
 
     def train_step_interval(self):
@@ -39,7 +39,7 @@ class QAgent(TableBaseAgent):
         self.learning_steps += 1
         # print(next_state)
         td_error = (reward + (1-done) * self.gamma * \
-                    torch.max(self.online_net[next_state.argmax()]) \
-                    - self.online_net[state.argmax(), action])
+                    torch.max(self.online_net[next_state]) \
+                    - self.online_net[state, action])
 
-        self.online_net[state.argmax(), action] += self.lr * td_error.item()
+        self.online_net[state, action] += self.lr * td_error.item()

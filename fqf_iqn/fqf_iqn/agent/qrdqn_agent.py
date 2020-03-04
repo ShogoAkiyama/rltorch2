@@ -1,10 +1,10 @@
 import torch
+
 from .table_base_agent import TableBaseAgent
 from fqf_iqn.memory import LazyMultiStepMemory
 
 
 class QRDQNAgent(TableBaseAgent):
-
     def __init__(self, env, test_env, log_dir, num_steps=5*(10**7),
                  batch_size=32, num_taus=32, num_cosines=64,
                  kappa=1.0, quantile_lr=5e-5,
@@ -23,6 +23,8 @@ class QRDQNAgent(TableBaseAgent):
 
         self.batch_size = batch_size
         self.num_taus = num_taus
+        self.kappa = kappa
+        self.num_actions = 4
 
         # Replay memory which is memory-efficient to store stacked frames.
         self.memory = LazyMultiStepMemory(
@@ -31,28 +33,29 @@ class QRDQNAgent(TableBaseAgent):
 
         # Online network.
         self.online_net = torch.zeros((
-            self.env.nrow * self.env.ncol, self.num_taus, 4),
+            self.env.nrow * self.env.ncol, self.num_taus, self.num_actions),
             device=self.device, requires_grad=True)
 
         # Online network.
         self.target_net = torch.zeros((
-            self.env.nrow * self.env.ncol, self.num_taus, 4),
+            self.env.nrow * self.env.ncol, self.num_taus, self.num_actions),
             device=self.device)
 
         self.update_target()
 
-        self.num_taus = num_taus
-        self.num_cosines = num_cosines
-        self.kappa = kappa
-
         self.tau_hats = self.calculate_tau_hats()
 
-    def update_target(self):
-        self.target_net = self.online_net.clone().detach()
+    def calculate_tau_hats(self):
+        # taus value: [0, 1/N, ..., N/N], shape: [batch_size, num_taus+1]
+        taus = torch.arange(
+            0, self.num_taus+1
+            ).to(self.device).repeat(self.batch_size, 1).float() / self.num_taus
 
-    def is_update(self):
-        return self.steps % self.update_interval == 0\
-            and self.steps >= self.start_steps
+        assert taus.shape == (self.batch_size, self.num_taus+1)
+
+        tau_hats = (taus[:, :-1] + taus[:, 1:]).detach() / 2.
+
+        return tau_hats
 
     def train_step_interval(self):
         super().train_step_interval()
@@ -63,8 +66,7 @@ class QRDQNAgent(TableBaseAgent):
         with torch.no_grad():
             quantiles = self.online_net.clone()
             q_value = quantiles.mean(axis=1)
-            q_value = q_value.view(self.env.nrow, self.env.ncol, 4).cpu().numpy()
-        # q_value = q_value.reshape(self.env.nrow, self.env.ncol, 4)
+            q_value = q_value.view(self.env.nrow, self.env.ncol, self.num_actions).cpu().numpy()
 
         if self.is_update():
             self.learn()
@@ -73,23 +75,56 @@ class QRDQNAgent(TableBaseAgent):
             print("plot")
             self.plot(q_value)
 
-    def calculate_tau_hats(self):
-        # taus value: [0, 1/N, ..., N/N], shape: [batch_size, num_taus+1]
-        taus = torch.arange(
-            0, self.num_taus+1
-            ).to(self.device).float() / self.num_taus
-
-        tau_hats = (taus[:-1] + taus[1:]).detach() / 2.
-
-        return tau_hats
+    def update_target(self):
+        # print(self.online_net[0])
+        self.target_net = self.online_net.clone().detach()
+        # print(self.target_net[0])
 
     def exploit(self, state):
-        # Calculate Q and get greedy action.
+        state = torch.LongTensor([state]).to(self.device)
+
         with torch.no_grad():
-            quantiles = self.online_net[state]
-            action = quantiles.sum(dim=0).argmax().item()
+            quantiles = self.calculate_q(state)
+            assert quantiles.shape == (
+                1, self.num_actions)
+            action = quantiles.argmax().item()
 
         return action
+
+    def calculate_q(self, states=None):
+        assert states is not None
+
+        batch_size = states.shape[0]
+
+        # Calculate quantiles.
+        quantile = self.online_net[states]
+        assert quantile.shape == (
+            batch_size, self.num_taus, self.num_actions)
+
+        # Calculate expectations of value distribution.
+        q = quantile.sum(dim=1) / self.num_taus
+
+        assert q.shape == (batch_size, self.num_actions)
+
+        return q
+
+    def calculate_target_q(self, states=None):
+        assert states is not None
+
+        batch_size = states.shape[0]
+
+        # Calculate quantiles.
+        quantile = self.target_net[states]
+        # print(states.shape)
+        assert quantile.shape == (
+            batch_size, self.num_taus, self.num_actions)
+
+        # Calculate expectations of value distribution.
+        q = quantile.sum(dim=1) / self.num_taus
+
+        assert q.shape == (batch_size, self.num_actions)
+
+        return q
 
     def train_episode(self):
         self.episodes += 1
@@ -137,36 +172,50 @@ class QRDQNAgent(TableBaseAgent):
         states, actions, rewards, next_states, dones =\
             self.memory.sample(self.batch_size)
 
-        # Calculate quantile values of current states and actions at tau_hats.
-        current_sa_quantile_hats = self.online_net[states, :, actions].view(
-            self.batch_size, self.num_taus, 1)
+        # # Calculate embeddings of current states.
+        # print(states.shape, ' ', actions.shape)
+        current_sa_quantile_hats = evaluate_quantile_at_action(
+            self.online_net[states], actions)
         assert current_sa_quantile_hats.shape == (
                 self.batch_size, self.num_taus, 1)
 
-        # NOTE: Detach state_embeddings not to update convolution layers. Also,
-        # detach current_sa_quantile_hats because I calculate gradients of taus
-        # explicitly, not by backpropagation.
         quantile_loss = self.calculate_quantile_loss(
             current_sa_quantile_hats, rewards, next_states, dones)
 
         quantile_loss.backward()
         with torch.no_grad():
             self.online_net -= self.lr * self.online_net.grad
+            self.online_net.grad.zero_()
 
-    def calculate_quantile_loss(self, current_sa_quantile_hats,
+        if self.learning_steps % self.log_interval == 0:
+            self.writer.add_scalar(
+                'loss/quantile_loss', quantile_loss.detach().item(),
+                4*self.steps)
+
+            with torch.no_grad():
+                mean_q = self.calculate_q(states=states).mean()
+
+            self.writer.add_scalar(
+                'stats/mean_Q', mean_q, 4*self.steps)
+
+    def calculate_quantile_loss(self, current_sa_quantile_hats, 
                                 rewards, next_states, dones):
 
         with torch.no_grad():
-            # NOTE: Current and target quantiles share the same proposed
-            # fractions to reduce computations. (i.e. next_tau_hats = tau_hats)
-            next_q = self.online_net[next_states].squeeze(1).mean(dim=1)
+            # Calculate Q values of next states.
+            if self.double_q_learning:
+                next_q = self.calculate_q(states=next_states)
+            else:
+                next_q = self.calculate_target_q(states=next_states)
 
             # Calculate greedy actions.
             next_actions = torch.argmax(next_q, dim=1, keepdim=True)
+            assert next_actions.shape == (self.batch_size, 1)
 
             # Calculate quantile values of next states and actions at tau_hats.
-            next_sa_quantile_hats = \
-                self.target_net[next_states, :, next_actions]
+            next_sa_quantile_hats = evaluate_quantile_at_action(
+                self.target_net[next_states], next_actions).transpose(1, 2)
+
             assert next_sa_quantile_hats.shape == (
                 self.batch_size, 1, self.num_taus)
 
@@ -184,6 +233,21 @@ class QRDQNAgent(TableBaseAgent):
             td_errors, self.tau_hats, self.kappa)
 
         return quantile_huber_loss
+
+
+def evaluate_quantile_at_action(s_quantiles, actions):
+    assert s_quantiles.shape[0] == actions.shape[0]
+
+    batch_size = s_quantiles.shape[0]
+    num_taus = s_quantiles.shape[1]
+
+    # Expand actions into (batch_size, num_taus, 1).
+    action_index = actions[..., None].expand(batch_size, num_taus, 1)
+
+    # Calculate quantile values at specified actions.
+    sa_quantiles = s_quantiles.gather(dim=2, index=action_index)
+
+    return sa_quantiles
 
 
 def calculate_huber_loss(td_errors, kappa=1.0):

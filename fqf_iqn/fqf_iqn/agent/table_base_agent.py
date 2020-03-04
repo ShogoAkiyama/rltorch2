@@ -36,6 +36,7 @@ class TableBaseAgent:
         self.num_eval_steps = num_eval_steps
         self.lr = lr
         self.gamma = gamma
+        self.double_q_learning = double_q_learning
 
         self.target_update_interval = target_update_interval
         self.log_interval = log_interval
@@ -228,6 +229,7 @@ class TableBaseAgent:
         plt.savefig(
             self.log_dir+'/'+
             str(self.episodes)+'.png')
+        plt.close()
 
     def __del__(self):
         self.env.close()
