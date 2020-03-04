@@ -3,12 +3,12 @@ import yaml
 import argparse
 from datetime import datetime
 
-from agent.qrdqn_agent import QRDQNAgent
-from env import FrozenLakeEnv
+from fqf_iqn.agent.qrdqn_agent import QRDQNAgent
+from fqf_iqn.env import FrozenLakeEnv
 
 
 def run(args):
-    with open(os.path.join('config', 'qrdqn.yaml')) as f:
+    with open(os.path.join('fqf_iqn', 'config', 'qrdqn.yaml')) as f:
         config = yaml.load(f, Loader=yaml.SafeLoader)
 
     # Create environments.

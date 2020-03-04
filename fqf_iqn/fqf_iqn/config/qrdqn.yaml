@@ -2,7 +2,7 @@ num_steps: 50000000  # It equals to 200M frames.
 batch_size: 32
 num_taus: 64
 kappa: 1.0
-quantile_lr: 5.e-3
+quantile_lr: 5.e-5
 memory_size: 100000
 gamma: 0.99
 multi_step: 1

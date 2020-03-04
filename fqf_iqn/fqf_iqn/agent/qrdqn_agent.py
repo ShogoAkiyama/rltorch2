@@ -2,6 +2,7 @@ import torch
 from .table_base_agent import TableBaseAgent
 from fqf_iqn.memory import LazyMultiStepMemory
 
+
 class QRDQNAgent(TableBaseAgent):
 
     def __init__(self, env, test_env, log_dir, num_steps=5*(10**7),
