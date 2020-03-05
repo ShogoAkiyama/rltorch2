@@ -1,5 +1,6 @@
 import os
 import numpy as np
+import seaborn as sns
 
 import torch
 from torch.utils.tensorboard import SummaryWriter
@@ -222,6 +223,7 @@ class TableBaseAgent:
         ax.plot([1], [34], marker="o", color='r', markersize=40, alpha=0.8)
         ax.text(1, 1.3, 'START', ha='center', size=12, c='w')
         ax.text(1, 34.3, 'GOAL', ha='center', size=12, c='w')
+        
 
         fig.colorbar(mappable0, ax=ax, orientation="vertical")
 
@@ -230,6 +232,20 @@ class TableBaseAgent:
             self.log_dir+'/'+
             str(self.episodes)+'.png')
         plt.close()
+
+
+        # distribution
+        fig, ax = plt.subplots(nrow, ncol, figsize=(8, 15))
+        sns.distplot(reward_map[0, :, 0], ax=ax[0, 0], hist=False)
+        sns.distplot(reward_map[0, :, 1], ax=ax[0, 0], hist=False)
+        sns.distplot(reward_map[0, :, 2], ax=ax[0, 0], hist=False)
+        sns.distplot(reward_map[0, :, 3], ax=ax[0, 0], hist=False)
+
+        sns.distplot(reward_map[1, :, 0], ax=ax[0, 1], hist=False)
+        sns.distplot(reward_map[1, :, 1], ax=ax[0, 1], hist=False)
+        sns.distplot(reward_map[1, :, 2], ax=ax[0, 1], hist=False)
+        sns.distplot(reward_map[1, :, 3], ax=ax[0, 1], hist=False)
+
 
     def __del__(self):
         self.env.close()
