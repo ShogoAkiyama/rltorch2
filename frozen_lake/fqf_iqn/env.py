@@ -156,7 +156,8 @@ class FrozenLakeEnv(discrete.DiscreteEnv):
         self.reward_min = -100
         self.step_reward = -5
 
-        nA = 4
+        nA = 3
+        self.num_actions = nA
         nS = nrow * ncol
 
         isd = np.array(desc == b'S').astype('float64').ravel()
@@ -182,7 +183,7 @@ class FrozenLakeEnv(discrete.DiscreteEnv):
             for col in range(ncol):
                 s = to_s(row, col)
 
-                for a in range(4):
+                for a in range(nA):
                     li = P[s][a]   # 参照渡し
                     letter = desc[row, col]
                     if letter == b'G':
@@ -197,7 +198,7 @@ class FrozenLakeEnv(discrete.DiscreteEnv):
                         li.append((1.0, s, rew, done))
                     else:
                         if is_slippery:
-                            for b in [a, (a+1) % 4, (a+2) % 4, (a+3) % 4]:
+                            for b in [a, (a+1) % 3, (a+2) % 3]:
                                 newrow, newcol = inc(row, col, b)
                                 newstate = to_s(newrow, newcol)
                                 newletter = desc[newrow, newcol]

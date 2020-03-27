@@ -206,6 +206,9 @@ class TableBaseAgent:
         value[::3, 1::3] += q_value[:, :, 3]
         value[1::3, 1::3] += q_value.mean(axis=2)
 
+        # 0 of Up
+        value[::3, 1::3] = 0
+
         # Heatmap Plot
         fig = plt.figure(figsize=(6, 12))
         ax = fig.add_subplot(1, 1, 1)
@@ -241,7 +244,8 @@ class TableBaseAgent:
             for i in range(self.env.nrow*self.env.ncol):
                 subplot(self.env.nrow, self.env.ncol, i+1)
 
-                for j, c in zip(range(4), ['red', 'blue', 'green', 'darkorange']):
+                # for j, c in zip(range(4), ['red', 'blue', 'green', 'darkorange']):
+                for j, c in zip(range(4), ['red', 'blue', 'green']):
                     ax = sns.distplot(dist[i, :, j], color=c, hist=False)
                     ax.fill_between(ax.lines[j].get_xydata()[:, 0],
                                     ax.lines[j].get_xydata()[:, 1],
