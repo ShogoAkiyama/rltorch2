@@ -1,5 +1,6 @@
-import os
 import numpy as np
+import seaborn as sns
+from pylab import *
 
 import torch
 from torch.utils.tensorboard import SummaryWriter
@@ -142,9 +143,6 @@ class TableBaseAgent:
     def train_step_interval(self):
         self.epsilon_train.step()
 
-        # if self.steps % self.target_update_interval == 0:
-        #     self.update_target()
-
         if self.steps % self.eval_interval == 0:
             self.evaluate()
 
@@ -182,56 +180,80 @@ class TableBaseAgent:
         print('-' * 60)
         # print(self.online_net.copy().reshape(self.env.nrow, self.env.ncol, 4)[0][1])
 
-    def plot(self, q_value):
+    def plot(self, q_value, dist=None):
         state_size = 3
         q_nrow = self.env.nrow * state_size
         q_ncol = self.env.ncol * state_size
 
+        # Normalization
+        xmin = -1
+        xmax = 1
+        q_value = (q_value - q_value.min()) / (q_value.max() - q_value.min()) *\
+                  (xmax - xmin) + xmin
+
+        # Delete Corner
+        q_value[:, 0] = 0
+        q_value[-1, :, 1] = 0
+        q_value[:, -1, 2] = 0
+        q_value[0, :, 3] = 0
+
         value = np.zeros((q_nrow, q_ncol))
 
-        # Left, Down, Right, Up, Center
+        # 0.Left, 1.Down, 2.Right, 3.Up, 4.Center
         value[1::3, ::3] += q_value[:, :, 0]
         value[2::3, 1::3] += q_value[:, :, 1]
         value[1::3, 2::3] += q_value[:, :, 2]
         value[::3, 1::3] += q_value[:, :, 3]
         value[1::3, 1::3] += q_value.mean(axis=2)
 
-        # ヒートマップ表示
+        # Heatmap Plot
         fig = plt.figure(figsize=(6, 12))
         ax = fig.add_subplot(1, 1, 1)
-        # mappable0 = plt.imshow(value, cmap=cm.jet, interpolation="bilinear",
-        #    vmax=abs(value).max(), vmin=-abs(value).max())
         mappable0 = plt.imshow(value, cmap=cm.jet, interpolation="bilinear",
-           vmax=value.max(), vmin=value.max())
+           vmax=abs(value).max(), vmin=-abs(value).max())
+
         ax.set_xticks(np.arange(-0.5, q_ncol, 3))
         ax.set_yticks(np.arange(-0.5, q_nrow, 3))
         ax.set_xticklabels(range(self.env.ncol + 1))
         ax.set_yticklabels(range(self.env.nrow + 1))
         ax.grid(which="both")
 
-        # Start: green, Goal: blue, Hole: red
+        # Marker Of Start, Goal, Cliff
+        # Start: green, Goal: blue, Cliff: red
         ax.plot([1], [1],  marker="o", color='g', markersize=40, alpha=0.8)
-        ax.plot([1], [4],  marker="x", color='b', markersize=30, markeredgewidth=10, alpha=0.8)
-        ax.plot([1], [7],  marker="x", color='b', markersize=30, markeredgewidth=10, alpha=0.8)
-        ax.plot([1], [10], marker="x", color='b', markersize=30, markeredgewidth=10, alpha=0.8)
-        ax.plot([1], [13], marker="x", color='b', markersize=30, markeredgewidth=10, alpha=0.8)
-        ax.plot([1], [16], marker="x", color='b', markersize=30, markeredgewidth=10, alpha=0.8)
-        ax.plot([1], [19], marker="x", color='b', markersize=30, markeredgewidth=10, alpha=0.8)
-        ax.plot([1], [22], marker="x", color='b', markersize=30, markeredgewidth=10, alpha=0.8)
-        ax.plot([1], [25], marker="x", color='b', markersize=30, markeredgewidth=10, alpha=0.8)
-        ax.plot([1], [28], marker="x", color='b', markersize=30, markeredgewidth=10, alpha=0.8)
-        ax.plot([1], [31], marker="x", color='b', markersize=30, markeredgewidth=10, alpha=0.8)
+        for i in range(10):   # 4, 7, 10, 13
+            ax.plot([1], [(i+1)*3+1],  marker="x", color='b', markersize=30, markeredgewidth=10, alpha=0.8)
         ax.plot([1], [34], marker="o", color='r', markersize=40, alpha=0.8)
         ax.text(1, 1.3, 'START', ha='center', size=12, c='w')
         ax.text(1, 34.3, 'GOAL', ha='center', size=12, c='w')
 
         fig.colorbar(mappable0, ax=ax, orientation="vertical")
 
-        # plt.show()
         plt.savefig(
-            self.log_dir+'/'+
+            self.log_dir + '/' +
             str(self.episodes)+'.png')
         plt.close()
+
+        # Distribution Plot
+        if dist is not None:
+            sns.set(rc={"figure.figsize": (6, 12)});
+
+            for i in range(self.env.nrow*self.env.ncol):
+                subplot(self.env.nrow, self.env.ncol, i+1)
+
+                for j, c in zip(range(4), ['red', 'blue', 'green', 'darkorange']):
+                    ax = sns.distplot(dist[i, :, j], color=c, hist=False)
+                    ax.fill_between(ax.lines[j].get_xydata()[:, 0],
+                                    ax.lines[j].get_xydata()[:, 1],
+                                    color=c, alpha=0.3)
+
+            # one liner to remove *all axes in all subplots*
+            plt.setp(plt.gcf().get_axes(), xticks=[], yticks=[]);
+
+            plt.savefig(
+                self.log_dir + '/' +
+                'dist-' + str(self.episodes) + '.png')
+            plt.close()
 
     def __del__(self):
         self.env.close()

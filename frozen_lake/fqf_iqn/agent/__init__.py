@@ -1,1 +1,1 @@
-from .qrdqn_agent import QRDQNAgent
+from .qr_table_agent import QRDQNAgent
