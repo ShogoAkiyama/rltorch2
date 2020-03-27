@@ -195,7 +195,7 @@ class TableBaseAgent:
         q_value[:, 0] = 0
         q_value[-1, :, 1] = 0
         q_value[:, -1, 2] = 0
-        q_value[0, :, 3] = 0
+        # q_value[0, :, 3] = 0
 
         value = np.zeros((q_nrow, q_ncol))
 
@@ -203,7 +203,7 @@ class TableBaseAgent:
         value[1::3, ::3] += q_value[:, :, 0]
         value[2::3, 1::3] += q_value[:, :, 1]
         value[1::3, 2::3] += q_value[:, :, 2]
-        value[::3, 1::3] += q_value[:, :, 3]
+        # value[::3, 1::3] += q_value[:, :, 3]
         value[1::3, 1::3] += q_value.mean(axis=2)
 
         # 0 of Up
