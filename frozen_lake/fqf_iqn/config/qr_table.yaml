@@ -14,6 +14,6 @@ epsilon_eval: 0.001
 epsilon_decay_steps: 100000  # It equals to 1M frames.
 double_q_learning: True
 log_interval: 100
-eval_interval: 1000000
+eval_interval: 100000
 num_eval_steps: 1000  # It equals to 500k frames.
 max_episode_steps: 100

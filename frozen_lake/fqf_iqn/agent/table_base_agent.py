@@ -15,7 +15,7 @@ from utils import RunningMeanStats, LinearAnneaer
 
 class TableBaseAgent:
 
-    def __init__(self, env, test_env, log_dir, num_steps=5*(10**7),
+    def __init__(self, env, test_env, log_dir, num_steps=5 * (10 ** 7),
                  lr=5e-5, gamma=0.99, multi_step=1, update_interval=4,
                  target_update_interval=10000, start_steps=50000, epsilon_train=0.01,
                  epsilon_eval=0.001, epsilon_decay_steps=250000, double_q_learning=False,
@@ -60,15 +60,15 @@ class TableBaseAgent:
                 break
 
     def is_update(self):
-        return self.steps % self.update_interval == 0\
-            and self.steps >= self.start_steps
+        return self.steps % self.update_interval == 0 \
+               and self.steps >= self.start_steps
 
     def is_greedy(self, eval=False):
         if eval:
             return np.random.rand() < self.epsilon_eval
         else:
-            return self.steps < self.start_steps\
-                or np.random.rand() < self.epsilon_train.get()
+            return self.steps < self.start_steps \
+                   or np.random.rand() < self.epsilon_train.get()
 
     # def update_target(self):
     #     self.target_net = self.online_net.copy()
@@ -101,7 +101,7 @@ class TableBaseAgent:
             os.path.join(save_dir, 'target_net.pth')))
 
     def train_episode(self):
-   
+
         self.episodes += 1
         episode_return = 0.
         episode_steps = 0
@@ -188,7 +188,7 @@ class TableBaseAgent:
         # Normalization
         xmin = -1
         xmax = 1
-        q_value = (q_value - q_value.min()) / (q_value.max() - q_value.min()) *\
+        q_value = (q_value - q_value.min()) / (q_value.max() - q_value.min()) * \
                   (xmax - xmin) + xmin
 
         # Delete Corner
@@ -207,14 +207,15 @@ class TableBaseAgent:
         value[1::3, 1::3] += q_value.mean(axis=2)
 
         # 0 of Up
-        value[::3, 1::3] = 0
+        # value[::3, 1::3] = 0
 
         # Heatmap Plot
         fig = plt.figure(figsize=(6, 12))
         ax = fig.add_subplot(1, 1, 1)
         mappable0 = plt.imshow(value, cmap=cm.jet, interpolation="bilinear",
-           vmax=abs(value).max(), vmin=-abs(value).max())
+                               vmax=abs(value).max(), vmin=-abs(value).max())
 
+        # Line
         ax.set_xticks(np.arange(-0.5, q_ncol, 3))
         ax.set_yticks(np.arange(-0.5, q_nrow, 3))
         ax.set_xticklabels(range(self.env.ncol + 1))
@@ -223,9 +224,9 @@ class TableBaseAgent:
 
         # Marker Of Start, Goal, Cliff
         # Start: green, Goal: blue, Cliff: red
-        ax.plot([1], [1],  marker="o", color='g', markersize=40, alpha=0.8)
-        for i in range(10):   # 4, 7, 10, 13
-            ax.plot([1], [(i+1)*3+1],  marker="x", color='b', markersize=30, markeredgewidth=10, alpha=0.8)
+        ax.plot([1], [1], marker="o", color='g', markersize=40, alpha=0.8)
+        for i in range(10):  # 4, 7, 10, 13
+            ax.plot([1], [(i + 1) * 3 + 1], marker="x", color='b', markersize=30, markeredgewidth=10, alpha=0.8)
         ax.plot([1], [34], marker="o", color='r', markersize=40, alpha=0.8)
         ax.text(1, 1.3, 'START', ha='center', size=12, c='w')
         ax.text(1, 34.3, 'GOAL', ha='center', size=12, c='w')
@@ -234,24 +235,29 @@ class TableBaseAgent:
 
         plt.savefig(
             self.log_dir + '/' +
-            str(self.episodes)+'.png')
+            str(self.episodes) + '.png')
         plt.close()
 
         # Distribution Plot
         if dist is not None:
-            sns.set(rc={"figure.figsize": (6, 12)});
+            # sns.set(rc={"figure.figsize": (6, 12)});
+            plt.gcf().set_size_inches(6, 12)
 
-            for i in range(self.env.nrow*self.env.ncol):
-                subplot(self.env.nrow, self.env.ncol, i+1)
+            for i in range(self.env.nrow * self.env.ncol):
+                subplot(self.env.nrow, self.env.ncol, i + 1,
+                        facecolor='#EAEAF2', fc='#EAEAF2')
+                for x in ['left', 'bottom', 'top', 'right']:
+                    plt.gca().spines[x].set_visible(False)
+                    # plt.gca().spines['top'].set_visible(False)
 
                 # for j, c in zip(range(4), ['red', 'blue', 'green', 'darkorange']):
-                for j, c in zip(range(4), ['red', 'blue', 'green']):
+                for j, c in enumerate(['red', 'blue', 'green']):
                     ax = sns.distplot(dist[i, :, j], color=c, hist=False)
                     ax.fill_between(ax.lines[j].get_xydata()[:, 0],
                                     ax.lines[j].get_xydata()[:, 1],
                                     color=c, alpha=0.3)
 
-            # one liner to remove *all axes in all subplots*
+            # # one liner to remove *all axes in all subplots*
             plt.setp(plt.gcf().get_axes(), xticks=[], yticks=[]);
 
             plt.savefig(

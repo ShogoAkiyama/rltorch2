@@ -1,6 +1,5 @@
 import torch
 import numpy as np
-# import cupy as cp
 
 from .table_base_agent import TableBaseAgent
 

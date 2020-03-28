@@ -1,8 +1,7 @@
 import torch
-import numpy as np
-
 
 from .table_base_agent import TableBaseAgent
+
 
 class QAgent(TableBaseAgent):
 
