@@ -1,13 +1,7 @@
-import sys
-from contextlib import closing
-
 import numpy as np
-from six import StringIO, b
-
-from gym import utils
-from gym.envs.toy_text import discrete
-
 import torch
+
+from gym.envs.toy_text import discrete
 
 LEFT = 0
 DOWN = 1
@@ -69,47 +63,7 @@ MAPS = {
 }
 
 
-def generate_random_map(size=8, p=0.8):
-    """Generates a random valid map (one that has a path from start to goal)
-    :param size: size of each side of the grid
-    :param p: probability that a tile is frozen
-    """
-    valid = False
-
-    # DFS to check that it's a valid path.
-    def is_valid(res):
-        frontier, discovered = [], set()
-        frontier.append((0,0))
-        while frontier:
-            r, c = frontier.pop()
-            if not (r,c) in discovered:
-                discovered.add((r,c))
-                directions = [(1, 0), (0, 1), (-1, 0), (0, -1)]
-                for x, y in directions:
-                    r_new = r + x
-                    c_new = c + y
-                    if r_new < 0 or r_new >= size or c_new < 0 or c_new >= size:
-                        continue
-                    if res[r_new][c_new] == 'G':
-                        return True
-                    if (res[r_new][c_new] not in '#H'):
-                        frontier.append((r_new, c_new))
-        return False
-
-    while not valid:
-        p = min(1, p)
-        res = np.random.choice(['F', 'H'], (size, size), p=[p, 1-p])
-        res[0][0] = 'S'
-        res[-1][-1] = 'G'
-        valid = is_valid(res)
-    return ["".join(x) for x in res]
-
-
 def categorical_sample(prob_n):
-    """
-    Sample from categorical distribution
-    Each row specifies class probabilities
-    """
     prob_n = np.asarray(prob_n)
     i = np.random.choice(list(range(len(prob_n))),
                          size=1,
@@ -118,42 +72,18 @@ def categorical_sample(prob_n):
 
 
 class FrozenLakeEnv(discrete.DiscreteEnv):
-    """
-    Winter is here. You and your friends were tossing around a frisbee at the park
-    when you made a wild throw that left the frisbee out in the middle of the lake.
-    The water is mostly frozen, but there are a few holes where the ice has melted.
-    If you step into one of those holes, you'll fall into the freezing water.
-    At this time, there's an international frisbee shortage, so it's absolutely imperative that
-    you navigate across the lake and retrieve the disc.
-    However, the ice is slippery, so you won't always move in the direction you intend.
-    The surface is described using a grid like the following
-        SFFF
-        FHFH
-        FFFH
-        HFFG
-    S : starting point, safe
-    F : frozen surface, safe
-    H : hole, fall to your doom
-    G : goal, where the frisbee is located
-    The episode ends when you reach the goal or fall in a hole.
-    You receive a reward of 1 if you reach the goal, and zero otherwise.
-    """
 
-    metadata = {'render.modes': ['human', 'ansi']}
-
-    def __init__(self, desc=None, map_name="12x6", is_slippery=True, prob=1.0, cuda=True):
-        if desc is None and map_name is None:
-            desc = generate_random_map()
-        elif desc is None:
-            desc = MAPS[map_name]
+    def __init__(self, map_name="12x6", is_slippery=True, prob=1.0, cuda=True):
+        desc = MAPS[map_name]
 
         self.device = torch.device(
             "cuda" if cuda and torch.cuda.is_available() else "cpu")
 
-        self.desc = desc = np.asarray(desc,dtype='c')
+        self.desc = desc = np.asarray(desc, dtype='c')
         self.nrow, self.ncol = nrow, ncol = desc.shape
         self.reward_max = 100
         self.reward_min = -100
+        self.reward_sub = 50
         self.step_reward = -1
 
         nA = 3
@@ -170,13 +100,13 @@ class FrozenLakeEnv(discrete.DiscreteEnv):
 
         def inc(row, col, a):
             if a == LEFT:
-                col = max(col-1,0)
+                col = max(col-1, 0)
             elif a == DOWN:
-                row = min(row+1,nrow-1)
+                row = min(row+1, nrow-1)
             elif a == RIGHT:
-                col = min(col+1,ncol-1)
+                col = min(col+1, ncol-1)
             elif a == UP:
-                row = max(row-1,0)
+                row = max(row-1, 0)
             return (row, col)
 
         for row in range(nrow):
@@ -186,56 +116,38 @@ class FrozenLakeEnv(discrete.DiscreteEnv):
                 for a in range(nA):
                     li = P[s][a]   # 参照渡し
                     letter = desc[row, col]
-                    if letter == b'G':
-                        rew = self.reward_max
-                        done = True
-
-                        li.append((1.0, s, rew, done))
-                    elif letter == b'H':
-                        rew = self.reward_min
-                        done = True
+                    if (letter == b'G') | (letter == b'H'):
+                        rew, done = self.reward_done(letter)
 
                         li.append((1.0, s, rew, done))
                     else:
-                        if is_slippery:
-                            for b in [a, (a+1) % 3, (a+2) % 3]:
-                                newrow, newcol = inc(row, col, b)
-                                newstate = to_s(newrow, newcol)
-                                newletter = desc[newrow, newcol]
-
-                                if newletter == b'G':
-                                    rew = self.reward_max
-                                    done = True   # torch.ByteTensor(1).to(self.device)
-                                elif newletter == b'H':
-                                    rew = self.reward_min
-                                    done = True   # torch.ByteTensor([1]).to(self.device)
-                                else:
-                                    rew = self.step_reward
-                                    done = False   # torch.ByteTensor([0]).to(self.device)
-                                if b == a:   # 行動確率
-                                    if b == 0:
-                                        li.append((1, newstate, rew, done))
-                                    else:
-                                        li.append((prob, newstate, rew, done))
-                                elif b == 0:   # 左の風
-                                    li.append((1-prob, newstate, rew, done))
-                                else:
-                                    li.append((0, newstate, rew, done))
-                        else:
+                        if (not is_slippery) | (row == 0) | (row == self.nrow - 1):
                             newrow, newcol = inc(row, col, a)
                             newstate = to_s(newrow, newcol)
                             newletter = desc[newrow, newcol]
 
-                            if newletter == b'G':
-                                rew = self.reward_max
-                                done = True
-                            elif newletter == b'H':
-                                rew = self.reward_min
-                                done = True
-                            else:
-                                rew = self.step_reward
-                                done = False
+                            rew, done = self.reward_done(newletter)
+
                             li.append((1.0, newstate, rew, done))
+
+                        else:
+                            for b in [a, (a+1) % nA, (a+2) % nA]:
+                                newrow, newcol = inc(row, col, b)
+                                newstate = to_s(newrow, newcol)
+                                newletter = desc[newrow, newcol]
+
+                                rew, done = self.reward_done(newletter)
+
+                                # 行動確率
+                                if b == a:
+                                    if b == 0:   # 選択行動が左なら確率1
+                                        li.append((1, newstate, rew, done))
+                                    else:
+                                        li.append((np.round(prob, 2), newstate, rew, done))
+                                elif b == 0:   # 選択をしていない左は(1-prob)の確率
+                                    li.append((np.round((1-prob), 2), newstate, rew, done))
+                                else:
+                                    li.append((0, newstate, rew, done))
 
         super(FrozenLakeEnv, self).__init__(nS, nA, P, isd)
 
@@ -255,21 +167,19 @@ class FrozenLakeEnv(discrete.DiscreteEnv):
         self.lastaction = a
         return (self.s, r, d, {"prob": p})
 
-    def render(self, mode='human'):
-        outfile = StringIO() if mode == 'ansi' else sys.stdout
-
-        row, col = self.s // self.ncol, self.s % self.ncol
-        desc = self.desc.tolist()
-        desc = [[c.decode('utf-8') for c in line] for line in desc]
-        desc[row][col] = utils.colorize(desc[row][col], "red", highlight=True)
-        if self.lastaction is not None:
-            # print action
-            print("({})\n".format(["Left","Down","Right","Up"][self.lastaction]))
+    def reward_done(self, newletter):
+        # 報酬、終了条件作成
+        if newletter == b'G':
+            rew = self.reward_max
+            done = True
+        elif newletter == b'H':
+            rew = self.reward_min
+            done = True
+        elif newletter == b'g':  # sub goal
+            rew = self.reward_sub
+            done = False
         else:
-            print("\n")
-        # print map
-        print("\n".join(''.join(line) for line in desc)+"\n")
+            rew = self.step_reward
+            done = False
 
-        if mode != 'human':
-            with closing(outfile):
-                return outfile.getvalue()
+        return rew, done

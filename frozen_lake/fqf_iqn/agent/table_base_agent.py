@@ -224,12 +224,20 @@ class TableBaseAgent:
 
         # Marker Of Start, Goal, Cliff
         # Start: green, Goal: blue, Cliff: red
-        ax.plot([1], [1], marker="o", color='g', markersize=40, alpha=0.8)
-        for i in range(10):  # 4, 7, 10, 13
-            ax.plot([1], [(i + 1) * 3 + 1], marker="x", color='b', markersize=30, markeredgewidth=10, alpha=0.8)
-        ax.plot([1], [34], marker="o", color='r', markersize=40, alpha=0.8)
-        ax.text(1, 1.3, 'START', ha='center', size=12, c='w')
-        ax.text(1, 34.3, 'GOAL', ha='center', size=12, c='w')
+        for i in range(0, self.env.nrow):
+            y = i * 3 + 1
+            for j in range(self.env.ncol):
+                x = j * 3 + 1
+                if self.env.desc[i][j] == b'S':
+                    ax.plot([x], [y], marker="o", color='g', markersize=40, alpha=0.8)
+                    ax.text(x, y + 0.3, 'START', ha='center', size=12, c='w')
+                elif self.env.desc[i][j] == b'G':
+                    ax.plot([x], [y], marker="o", color='r', markersize=40, alpha=0.8)
+                    ax.text(x, y + 0.3, 'GOAL', ha='center', size=12, c='w')
+                elif self.env.desc[i][j] == b'H':
+                    ax.plot([x], [y], marker="x", color='b', markersize=30, markeredgewidth=10, alpha=0.8)
+                elif self.env.desc[i][j] == b'g':
+                    ax.plot([x], [y], marker="o", color='orange', markersize=30, markeredgewidth=10, alpha=0.8)
 
         fig.colorbar(mappable0, ax=ax, orientation="vertical")
 
