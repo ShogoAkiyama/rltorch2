@@ -175,13 +175,20 @@ class TableBaseAgent:
             if num_steps > self.num_eval_steps:
                 break
 
+        mean_return = np.round(total_return / num_episodes, 1)
+
         print('-' * 60)
         print('Eval mean_steps: ', int(num_steps / num_episodes),
-              'reward: ', np.round(total_return / num_episodes, 1))
+              'reward: ', mean_return)
         print('-' * 60)
+
+        self.writer.add_scalar(
+            'return/eval', mean_return, 4 * self.steps)
         # print(self.online_net.copy().reshape(self.env.nrow, self.env.ncol, 4)[0][1])
 
     def plot(self, q_value, dist=None):
+        os.makedirs(self.log_dir + '/' + str(self.episodes))
+
         state_size = 3
         q_nrow = self.env.nrow * state_size
         q_ncol = self.env.ncol * state_size
@@ -207,16 +214,12 @@ class TableBaseAgent:
         # value[::3, 1::3] += q_value[:, :, 3]
         value[1::3, 1::3] += q_value.mean(axis=2)
 
-        # 0 of Up
-        # value[::3, 1::3] = 0
-
         # Heatmap Plot
         fig = plt.figure(figsize=(6, 12))
         ax = fig.add_subplot(1, 1, 1)
         mappable0 = plt.imshow(value, cmap=cm.jet, interpolation="bilinear",
                                vmax=abs(value).max(), vmin=-abs(value).max())
 
-        # Line
         ax.set_xticks(np.arange(-0.5, q_ncol, 3))
         ax.set_yticks(np.arange(-0.5, q_nrow, 3))
         ax.set_xticklabels(range(self.env.ncol + 1))
@@ -244,7 +247,50 @@ class TableBaseAgent:
 
         plt.savefig(
             self.log_dir + '/' +
-            str(self.episodes) + '.png')
+            str(self.episodes) + '/' +
+            'heatmap.png')
+        plt.close()
+
+
+        # Optimization Path
+        fig = plt.figure(figsize=(6, 12))
+        ax = fig.add_subplot(1, 1, 1)
+        value = np.zeros((q_nrow, q_ncol))
+        mappable0 = plt.imshow(value, cmap=cm.jet, interpolation="bilinear",
+                               vmax=abs(value).max(), vmin=-abs(value).max())
+
+        opt_act = q_value.argmax(axis=2)
+        self.plot_arrow(ax, opt_act)
+
+        ax.set_xticks(np.arange(-0.5, q_ncol, 3))
+        ax.set_yticks(np.arange(-0.5, q_nrow, 3))
+        ax.set_xticklabels(range(self.env.ncol + 1))
+        ax.set_yticklabels(range(self.env.nrow + 1))
+        ax.grid(which="both")
+
+        # Marker Of Start, Goal, Cliff
+        # Start: green, Goal: blue, Cliff: red
+        for i in range(0, self.env.nrow):
+            y = i * 3 + 1
+            for j in range(self.env.ncol):
+                x = j * 3 + 1
+                if self.env.desc[i][j] == b'S':
+                    ax.plot([x], [y], marker="o", color='g', markersize=40, alpha=0.8)
+                    ax.text(x, y + 0.3, 'START', ha='center', size=12, c='w')
+                elif self.env.desc[i][j] == b'G':
+                    ax.plot([x], [y], marker="o", color='r', markersize=40, alpha=0.8)
+                    ax.text(x, y + 0.3, 'GOAL', ha='center', size=12, c='w')
+                elif self.env.desc[i][j] == b'H':
+                    ax.plot([x], [y], marker="x", color='b', markersize=30, markeredgewidth=10, alpha=0.8)
+                elif self.env.desc[i][j] == b'g':
+                    ax.plot([x], [y], marker="o", color='orange', markersize=30, markeredgewidth=10, alpha=0.8)
+
+        fig.colorbar(mappable0, ax=ax, orientation="vertical")
+
+        plt.savefig(
+            self.log_dir + '/' +
+            str(self.episodes) + '/' +
+            'optimization.png')
         plt.close()
 
         # Distribution Plot
@@ -271,8 +317,28 @@ class TableBaseAgent:
 
             plt.savefig(
                 self.log_dir + '/' +
-                'dist-' + str(self.episodes) + '.png')
+                str(self.episodes) + '/' +
+                'distribution.png')
             plt.close()
+
+    def plot_arrow(self, ax, opt_act):
+        for y in range(self.env.nrow):
+            for x in range(1, self.env.ncol):
+                if opt_act[y][x] == 0:   # 右向き
+                    ax.annotate('', xy=[0+3*x, 1+3*y], xytext=[2+3*x, 1+3*y],
+                        arrowprops=dict(shrink=10, width=20, headwidth=40,
+                        headlength=20, connectionstyle='arc3',
+                        facecolor='red', edgecolor='red'))
+                elif opt_act[y][x] == 1:   # 下向き
+                    ax.annotate('', xy=[1+3*x, 2+3*y], xytext=[1+3*x, 0+3*y],
+                        arrowprops=dict(shrink=10, width=20, headwidth=40,
+                        headlength=20, connectionstyle='arc3',
+                        facecolor='red', edgecolor='red'))
+                elif opt_act[y][x] == 2:   # 左向き
+                    ax.annotate('', xy=[2+3*x, 1+3*y], xytext=[0+3*x, 1+3*y],
+                        arrowprops=dict(shrink=10, width=20, headwidth=40,
+                        headlength=20, connectionstyle='arc3',
+                        facecolor='red', edgecolor='red'))
 
     def __del__(self):
         self.env.close()

@@ -6,7 +6,7 @@ update_interval: 4
 target_update_interval: 1
 start_steps: 1
 epsilon_train: 0.01
-epsilon_eval: 0.001
+epsilon_eval: 0.00
 epsilon_decay_steps: 100000  # It equals to 1M frames.
 log_interval: 100
 eval_interval: 1000000
