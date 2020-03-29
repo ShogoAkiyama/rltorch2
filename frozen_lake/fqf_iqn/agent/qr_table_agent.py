@@ -27,7 +27,6 @@ class QRDQNAgent(TableBaseAgent):
         self.c = c
         self.sensitive = sensitive
         self.kappa = kappa
-        self.num_actions = env.num_actions
         self.num_cvar = int(np.ceil(self.num_taus * self.c))
 
         # Replay memory which is memory-efficient to store stacked frames.

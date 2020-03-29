@@ -83,8 +83,8 @@ class FrozenLakeEnv(discrete.DiscreteEnv):
         self.nrow, self.ncol = nrow, ncol = desc.shape
         self.reward_max = 100
         self.reward_min = -100
-        self.reward_sub = 50
-        self.step_reward = -8
+        self.reward_sub = 10
+        self.step_reward = -5
 
         nA = 3
         self.num_actions = nA
@@ -159,6 +159,7 @@ class FrozenLakeEnv(discrete.DiscreteEnv):
 
     def step(self, a):
         # transitions = self.P[self.s.argmax().item()][a]
+        # print(self.s, ' ', a, ' ', self.P[self.s])
         transitions = self.P[self.s][a]
         i = categorical_sample([t[0] for t in transitions])
         p, s, r, d = transitions[i]

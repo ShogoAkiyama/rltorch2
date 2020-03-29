@@ -24,6 +24,7 @@ class TableBaseAgent:
 
         self.env = env
         self.test_env = test_env
+        self.num_actions = env.num_actions
 
         self.device = torch.device(
             "cuda" if cuda and torch.cuda.is_available() else "cpu")

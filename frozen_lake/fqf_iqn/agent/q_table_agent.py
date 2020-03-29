@@ -19,7 +19,7 @@ class QAgent(TableBaseAgent):
 
         # Online network.
         self.online_net = torch.zeros((
-            self.env.nrow * self.env.ncol, 4)).to(self.device)
+            self.env.nrow * self.env.ncol, self.num_actions)).to(self.device)
 
     def exploit(self, state):
         # Act without randomness.
@@ -29,7 +29,7 @@ class QAgent(TableBaseAgent):
     def train_step_interval(self):
         super().train_step_interval()
         q_value = self.online_net.clone().view(
-            self.env.nrow, self.env.ncol, 4).cpu().numpy()
+            self.env.nrow, self.env.ncol, self.num_actions).cpu().numpy()
 
         if self.steps % self.eval_interval == 0:
             self.plot(q_value)
