@@ -5,7 +5,7 @@ from .table_base_agent import TableBaseAgent
 from fqf_iqn.memory import LazyMultiStepMemory
 
 
-class QRDQNAgent(TableBaseAgent):
+class QRAgent(TableBaseAgent):
     def __init__(self, env, test_env, log_dir, num_steps=5*(10**7),
                  batch_size=32, num_taus=32, c=0.05, sensitive=False,
                  kappa=1.0, quantile_lr=5e-5,
@@ -16,7 +16,7 @@ class QRDQNAgent(TableBaseAgent):
                  log_interval=100, eval_interval=250000, num_eval_steps=125000,
                  max_episode_steps=27000, cuda=True,
                  seed=0):
-        super(QRDQNAgent, self).__init__(
+        super(QRAgent, self).__init__(
             env, test_env, log_dir, num_steps, quantile_lr, gamma, multi_step,
             update_interval, target_update_interval, start_steps, epsilon_train,
             epsilon_eval, epsilon_decay_steps, double_q_learning, log_interval,

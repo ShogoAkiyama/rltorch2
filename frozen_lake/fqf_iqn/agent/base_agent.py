@@ -1,55 +1,78 @@
 import os
 import numpy as np
-import seaborn as sns
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
+import seaborn as sns
 
 import torch
 from torch.utils.tensorboard import SummaryWriter
 
+from fqf_iqn.memory import LazyMultiStepMemory
 from utils import RunningMeanStats, LinearAnneaer
 
 
-class TableBaseAgent:
+class BaseAgent:
 
-    def __init__(self, env, test_env, log_dir, num_steps=5 * (10 ** 7),
-                 lr=5e-5, gamma=0.99, multi_step=1, update_interval=4,
-                 target_update_interval=10000, start_steps=50000, epsilon_train=0.01,
-                 epsilon_eval=0.001, epsilon_decay_steps=250000, double_q_learning=False,
+    def __init__(self, env, test_env, log_dir, num_steps=5*(10**7),
+                 batch_size=32, memory_size=10**6, gamma=0.99, multi_step=1,
+                 update_interval=4, target_update_interval=10000,
+                 start_steps=50000, epsilon_train=0.01, epsilon_eval=0.001,
+                 epsilon_decay_steps=250000, double_q_learning=False,
                  log_interval=100, eval_interval=250000, num_eval_steps=125000,
-                 max_episode_steps=27000, seed=0, cuda=True):
+                 max_episode_steps=27000, grad_cliping=5.0, cuda=True, seed=0):
 
         self.env = env
         self.test_env = test_env
-        self.num_actions = env.num_actions
+
+        torch.manual_seed(seed)
+        np.random.seed(seed)
+        self.env.seed(seed)
+        self.test_env.seed(2**31-1-seed)
 
         self.device = torch.device(
             "cuda" if cuda and torch.cuda.is_available() else "cpu")
 
-        self.start_steps = start_steps
-        self.max_episode_steps = max_episode_steps
-        self.epsilon_train = LinearAnneaer(
-            1.0, epsilon_train, epsilon_decay_steps)
-        self.epsilon_eval = epsilon_eval
-        self.num_steps = num_steps
-        self.num_eval_steps = num_eval_steps
-        self.lr = lr
-        self.gamma = gamma
-        self.double_q_learning = double_q_learning
+        self.online_net = None
+        self.target_net = None
 
-        self.target_update_interval = target_update_interval
-        self.log_interval = log_interval
-        self.update_interval = update_interval
-        self.eval_interval = eval_interval
-        self.summary_dir = os.path.join(log_dir, 'summary')
+        # Replay memory which is memory-efficient to store stacked frames.
+        self.memory = LazyMultiStepMemory(
+            memory_size, self.env.observation_space.shape,
+            self.device, gamma, multi_step)
 
         self.log_dir = log_dir
+        self.model_dir = os.path.join(log_dir, 'model')
+        self.summary_dir = os.path.join(log_dir, 'summary')
+        if not os.path.exists(self.model_dir):
+            os.makedirs(self.model_dir)
+        if not os.path.exists(self.summary_dir):
+            os.makedirs(self.summary_dir)
+
         self.writer = SummaryWriter(log_dir=self.summary_dir)
         self.train_return = RunningMeanStats(log_interval)
 
         self.steps = 0
-        self.episodes = 0
         self.learning_steps = 0
+        self.episodes = 0
+        self.best_eval_score = -np.inf
+        self.num_actions = env.num_actions
+        self.num_steps = num_steps
+        self.batch_size = batch_size
+
+        self.double_q_learning = double_q_learning
+
+        self.log_interval = log_interval
+        self.eval_interval = eval_interval
+        self.num_eval_steps = num_eval_steps
+        self.gamma_n = gamma ** multi_step
+        self.start_steps = start_steps
+        self.epsilon_train = LinearAnneaer(
+            1.0, epsilon_train, epsilon_decay_steps)
+        self.epsilon_eval = epsilon_eval
+        self.update_interval = update_interval
+        self.target_update_interval = target_update_interval
+        self.max_episode_steps = max_episode_steps
+        self.grad_cliping = grad_cliping
 
     def run(self):
         while True:
@@ -58,18 +81,19 @@ class TableBaseAgent:
                 break
 
     def is_update(self):
-        return self.steps % self.update_interval == 0 \
-               and self.steps >= self.start_steps
+        return self.steps % self.update_interval == 0\
+            and self.steps >= self.start_steps
 
     def is_greedy(self, eval=False):
         if eval:
             return np.random.rand() < self.epsilon_eval
         else:
-            return self.steps < self.start_steps \
-                   or np.random.rand() < self.epsilon_train.get()
+            return self.steps < self.start_steps\
+                or np.random.rand() < self.epsilon_train.get()
 
-    # def update_target(self):
-    #     self.target_net = self.online_net.copy()
+    def update_target(self):
+        self.target_net.load_state_dict(
+            self.online_net.state_dict())
 
     def explore(self):
         # Act with randomness.
@@ -77,7 +101,17 @@ class TableBaseAgent:
         return action
 
     def exploit(self, state):
-        raise NotImplementedError
+        # one-hot encoding
+        state = torch.eye(
+                    self.env.nrow * self.env.ncol, dtype=torch.float32
+                )[state].to(self.device).unsqueeze(0)
+        # state = torch.LongTensor([state]).to(self.device)
+
+        with torch.no_grad():
+            action = self.online_net.calculate_q(
+                states=state).argmax().item()
+
+        return action
 
     def learn(self):
         raise NotImplementedError
@@ -99,6 +133,8 @@ class TableBaseAgent:
             os.path.join(save_dir, 'target_net.pth')))
 
     def train_episode(self):
+        self.online_net.train()
+        self.target_net.train()
 
         self.episodes += 1
         episode_return = 0.
@@ -108,7 +144,6 @@ class TableBaseAgent:
         state = self.env.reset()
 
         while (not done) and episode_steps <= self.max_episode_steps:
-
             if self.is_greedy(eval=False):
                 action = self.explore()
             else:
@@ -116,7 +151,8 @@ class TableBaseAgent:
 
             next_state, reward, done, _ = self.env.step(action)
 
-            self.learn(state, action, reward, next_state, done)
+            self.memory.append(
+                state, action, reward, next_state, done)
 
             self.steps += 1
             episode_steps += 1
@@ -141,8 +177,17 @@ class TableBaseAgent:
     def train_step_interval(self):
         self.epsilon_train.step()
 
+        if self.steps % self.target_update_interval == 0:
+            self.update_target()
+
+        if self.is_update():
+            self.learn()
+
         if self.steps % self.eval_interval == 0:
+            self.online_net.eval()
             self.evaluate()
+            self.save_models(os.path.join(self.model_dir, 'final'))
+            self.online_net.train()
 
     def evaluate(self):
         num_episodes = 0
@@ -172,16 +217,20 @@ class TableBaseAgent:
             if num_steps > self.num_eval_steps:
                 break
 
-        mean_return = np.round(total_return / num_episodes, 1)
+        mean_return = total_return / num_episodes
 
-        print('-' * 60)
-        print('Eval mean_steps: ', int(num_steps / num_episodes),
-              'reward: ', mean_return)
-        print('-' * 60)
+        if mean_return > self.best_eval_score:
+            self.best_eval_score = mean_return
+            self.save_models(os.path.join(self.model_dir, 'best'))
 
+        # We log evaluation results along with training frames = 4 * steps.
         self.writer.add_scalar(
-            'return/eval', mean_return, 4 * self.steps)
-        # print(self.online_net.copy().reshape(self.env.nrow, self.env.ncol, 4)[0][1])
+            'return/test', mean_return, 4 * self.steps)
+        print('-' * 60)
+        print(f'Num steps: {self.steps:<5}  '
+              f'return: {mean_return:<5.1f}')
+        print('-' * 60)
+
 
     def plot(self, q_value, dist=None):
         os.makedirs(self.log_dir + '/' + str(self.episodes))
@@ -336,6 +385,7 @@ class TableBaseAgent:
                         arrowprops=dict(shrink=10, width=20, headwidth=40,
                         headlength=20, connectionstyle='arc3',
                         facecolor='red', edgecolor='red'))
+
 
     def __del__(self):
         self.env.close()

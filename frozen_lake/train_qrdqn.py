@@ -3,12 +3,12 @@ import yaml
 import argparse
 from datetime import datetime
 
-from fqf_iqn.agent import QRAgent
+from fqf_iqn.agent import QRDQNAgent
 from fqf_iqn.env import FrozenLakeEnv
 
 
 def run(args):
-    with open(os.path.join('fqf_iqn', 'config', 'qr_table.yaml')) as f:
+    with open(os.path.join('fqf_iqn', 'config', 'qrdqn.yaml')) as f:
         config = yaml.load(f, Loader=yaml.SafeLoader)
 
     # Create environments.
@@ -25,10 +25,10 @@ def run(args):
         else:
             risk = 'taking'
     log_dir = os.path.join(
-        'logs', args.env_id, f'QR-c{c}-{risk}-{args.seed}-{time}')
+        'logs', args.env_id, f'QRDQN-c{c}-{risk}-{args.seed}-{time}')
 
     # Create the agent and run.
-    agent = QRAgent(
+    agent = QRDQNAgent(
         env=env, test_env=test_env, log_dir=log_dir, seed=args.seed,
         c=args.c, sensitive=args.sensitive,
         cuda=args.cuda, **config)

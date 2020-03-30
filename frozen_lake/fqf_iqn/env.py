@@ -81,10 +81,10 @@ class FrozenLakeEnv(discrete.DiscreteEnv):
 
         self.desc = desc = np.asarray(desc, dtype='c')
         self.nrow, self.ncol = nrow, ncol = desc.shape
-        self.reward_max = 100
+        self.reward_max = 1
         self.reward_min = -100
         self.reward_sub = 10
-        self.step_reward = -5
+        self.step_reward = -1
 
         nA = 3
         self.num_actions = nA
