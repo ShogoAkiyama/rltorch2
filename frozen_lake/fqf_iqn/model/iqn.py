@@ -42,7 +42,7 @@ class IQN(nn.Module):
         tau_embeddings = self.cosine_net(taus)
         return self.quantile_net(state_embeddings, tau_embeddings)
 
-    def calculate_q(self, states=None, state_embeddings=None, beta=False):
+    def calculate_q(self, states=None, state_embeddings=None):
         batch_size = states.shape[0] if states is not None \
             else state_embeddings.shape[0]
 
