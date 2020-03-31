@@ -173,7 +173,7 @@ class IQNAgent(BaseAgent):
             elif self.sensitive:
                 taus *= self.c
             else:
-                taus *= (1 - self.c)
+                taus = (1 - self.c) * taus + (1 - self.c)
 
             # Calculate quantiles.
             quantiles = self.online_net.calculate_quantiles(
