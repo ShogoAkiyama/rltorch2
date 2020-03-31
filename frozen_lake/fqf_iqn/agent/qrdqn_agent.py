@@ -31,11 +31,13 @@ class QRDQNAgent(BaseAgent):
         # Online network.
         self.online_net = QRDQN(
             num_states=self.env.nrow * self.env.ncol,
-            num_actions=self.num_actions, N=N).to(self.device)
+            num_actions=self.num_actions, N=N,
+            sensitive=sensitive, c=c).to(self.device)
         # Target network.
         self.target_net = QRDQN(
             num_states=self.env.nrow * self.env.ncol,
-            num_actions=self.num_actions, N=N).to(self.device)
+            num_actions=self.num_actions, N=N,
+            sensitive=sensitive, c=c).to(self.device)
 
         # Copy parameters of the learning network to the target network.
         self.update_target()
@@ -55,6 +57,7 @@ class QRDQNAgent(BaseAgent):
         self.kappa = kappa
         self.c = c
         self.sensitive = sensitive
+        self.num_cvar = int(np.ceil(self.N * self.c))
 
     def learn(self):
         self.learning_steps += 1
