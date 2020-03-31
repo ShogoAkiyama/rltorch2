@@ -1,6 +1,6 @@
 import torch
 
-from .table_base_agent import TableBaseAgent
+from frozen_lake.fqf_iqn.agent.table.table_base_agent import TableBaseAgent
 
 
 class QAgent(TableBaseAgent):

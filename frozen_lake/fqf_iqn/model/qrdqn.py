@@ -4,7 +4,8 @@ from torch import nn
 
 class QRDQN(nn.Module):
 
-    def __init__(self, num_states, num_actions, N=200, sensitive=None, c=0):
+    def __init__(self, num_states, num_actions, N=200,
+                 sensitive=None, c=0):
         super(QRDQN, self).__init__()
 
         # Quantile network.

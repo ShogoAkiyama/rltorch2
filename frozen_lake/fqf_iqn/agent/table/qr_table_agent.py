@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 
-from .table_base_agent import TableBaseAgent
+from fqf_iqn.agent.table.table_base_agent import TableBaseAgent
 from fqf_iqn.memory import LazyMultiStepMemory
 
 

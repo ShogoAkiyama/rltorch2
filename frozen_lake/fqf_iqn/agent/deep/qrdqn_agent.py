@@ -5,7 +5,7 @@ from torch.optim import Adam
 from fqf_iqn.model import QRDQN
 from utils import disable_gradients, update_params,\
     calculate_quantile_huber_loss, evaluate_quantile_at_action
-from .base_agent import BaseAgent
+from fqf_iqn.agent.deep.base_agent import BaseAgent
 
 
 class QRDQNAgent(BaseAgent):
@@ -58,6 +58,11 @@ class QRDQNAgent(BaseAgent):
         self.c = c
         self.sensitive = sensitive
         self.num_cvar = int(np.ceil(self.N * self.c))
+
+        # self.eval = eval
+        # if self.eval:
+        #     self.load_models(os.path.join(
+        #         'logs', 'FrozenLake-v0', f'QRDQN-c0', 'model', 'final'))
 
     def learn(self):
         self.learning_steps += 1
@@ -127,26 +132,26 @@ class QRDQNAgent(BaseAgent):
 
         return quantile_huber_loss, next_q.detach().mean().item()
 
-    def train_step_interval(self):
-        super().train_step_interval()
+    def evaluate(self):
+        super().evaluate()
 
-        if self.steps % self.eval_interval == 0:
-            with torch.no_grad():
-                n_states = self.env.nrow * self.env.ncol
-                states = torch.eye(n_states, dtype=torch.float32
-                                   )[np.arange(n_states)].to(self.device)
+        # if self.steps % self.eval_interval == 0:
+        with torch.no_grad():
+            n_states = self.env.nrow * self.env.ncol
+            states = torch.eye(n_states, dtype=torch.float32
+                               )[np.arange(n_states)].to(self.device)
 
-                quantiles = self.online_net(states=states)
+            quantiles = self.online_net(states=states)
 
-                if self.c == 0:
-                    quantiles = quantiles
-                elif self.sensitive:
-                    quantiles = quantiles[:, :self.num_cvar]
-                else:
-                    quantiles = quantiles[:, -self.num_cvar + 1:]
-                q_value = quantiles.mean(axis=1)
-                q_value = q_value.view(
-                    self.env.nrow, self.env.ncol, self.num_actions).cpu().numpy()
+            if self.c == 0:
+                quantiles = quantiles
+            elif self.sensitive:
+                quantiles = quantiles[:, :self.num_cvar]
+            else:
+                quantiles = quantiles[:, -self.num_cvar + 1:]
+            q_value = quantiles.mean(axis=1)
+            q_value = q_value.view(
+                self.env.nrow, self.env.ncol, self.num_actions).cpu().numpy()
 
-            print("plot")
-            self.plot(q_value, quantiles.cpu().numpy())
+        print("plot")
+        self.plot(q_value, quantiles.cpu().numpy())
