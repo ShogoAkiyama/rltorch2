@@ -16,7 +16,6 @@ class IQNAgent(BaseAgent):
                  multi_step=1, update_interval=4, target_update_interval=10000,
                  start_steps=50000, epsilon_train=0.01, epsilon_eval=0.001,
                  epsilon_decay_steps=250000, double_q_learning=False,
-                 dueling_net=False, noisy_net=False,
                  log_interval=100, eval_interval=250000, num_eval_steps=125000,
                  max_episode_steps=27000, grad_cliping=None, cuda=True,
                  seed=0):
@@ -173,7 +172,7 @@ class IQNAgent(BaseAgent):
             elif self.sensitive:
                 taus *= self.c
             else:
-                taus = (1 - self.c) * taus + (1 - self.c)
+                taus = self.c * taus + (1 - self.c)
 
             # Calculate quantiles.
             quantiles = self.online_net.calculate_quantiles(
