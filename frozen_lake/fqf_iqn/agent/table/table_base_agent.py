@@ -41,15 +41,21 @@ class TableBaseAgent:
         self.log_interval = log_interval
         self.update_interval = update_interval
         self.eval_interval = eval_interval
-        self.summary_dir = os.path.join(log_dir, 'summary')
 
         self.log_dir = log_dir
+        self.model_dir = os.path.join(log_dir, 'model')
+        self.summary_dir = os.path.join(log_dir, 'summary')
+        if not os.path.exists(self.model_dir):
+            os.makedirs(self.model_dir)
+        if not os.path.exists(self.summary_dir):
+            os.makedirs(self.summary_dir)
         self.writer = SummaryWriter(log_dir=self.summary_dir)
         self.train_return = RunningMeanStats(log_interval)
 
         self.steps = 0
         self.episodes = 0
         self.learning_steps = 0
+        self.best_eval_score = -np.inf
 
     def run(self):
         while True:
@@ -173,6 +179,10 @@ class TableBaseAgent:
                 break
 
         mean_return = np.round(total_return / num_episodes, 1)
+
+        if mean_return > self.best_eval_score:
+            self.best_eval_score = mean_return
+            self.save_models(os.path.join(self.model_dir, 'best'))
 
         print('-' * 60)
         print('Eval mean_steps: ', int(num_steps / num_episodes),

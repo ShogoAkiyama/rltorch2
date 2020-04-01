@@ -1,8 +1,11 @@
-import torch
+import os
 import numpy as np
+import torch
 
 from fqf_iqn.agent.table.table_base_agent import TableBaseAgent
 from fqf_iqn.memory import LazyMultiStepMemory
+from utils import disable_gradients, update_params,\
+    calculate_quantile_huber_loss, evaluate_quantile_at_action
 
 
 class QRAgent(TableBaseAgent):
@@ -61,7 +64,7 @@ class QRAgent(TableBaseAgent):
         return tau_hats
 
     def train_step_interval(self):
-        super().train_step_interval()
+        self.epsilon_train.step()
 
         if self.steps % self.target_update_interval == 0:
             self.update_target()
@@ -70,20 +73,25 @@ class QRAgent(TableBaseAgent):
             self.learn()
 
         if self.steps % self.eval_interval == 0:
-            with torch.no_grad():
-                quantiles = self.online_net.clone()
-                if self.c == 0:
-                    quantiles = quantiles
-                elif self.sensitive:
-                    quantiles = quantiles[:, :self.num_cvar]
-                else:
-                    quantiles = quantiles[:, -self.num_cvar + 1:]
-                q_value = quantiles.mean(axis=1)
-                q_value = q_value.view(
-                    self.env.nrow, self.env.ncol, self.num_actions).cpu().numpy()
+            self.evaluate()
+            self.save_models(os.path.join(self.model_dir, 'final'))
 
-            print("plot")
-            self.plot(q_value, quantiles.cpu().numpy())
+    def evaluate(self):
+        super().evaluate()
+        with torch.no_grad():
+            quantiles = self.online_net.clone()
+            if self.c == 0:
+                quantiles = quantiles
+            elif self.sensitive:
+                quantiles = quantiles[:, :self.num_cvar]
+            else:
+                quantiles = quantiles[:, -self.num_cvar + 1:]
+            q_value = quantiles.mean(axis=1)
+            q_value = q_value.view(
+                self.env.nrow, self.env.ncol, self.num_actions).cpu().numpy()
+
+        print("plot")
+        self.plot(q_value, quantiles.cpu().numpy())
 
     def update_target(self):
         self.target_net = self.online_net.clone().detach()
@@ -258,43 +266,18 @@ class QRAgent(TableBaseAgent):
 
         return quantile_huber_loss
 
+    def save_models(self, save_dir):
+        if not os.path.exists(save_dir):
+            os.makedirs(save_dir)
+        torch.save(
+            self.online_net,
+            os.path.join(save_dir, 'online_net.pth'))
+        torch.save(
+            self.target_net,
+            os.path.join(save_dir, 'target_net.pth'))
 
-def evaluate_quantile_at_action(s_quantiles, actions):
-    assert s_quantiles.shape[0] == actions.shape[0]
-
-    batch_size = s_quantiles.shape[0]
-    num_taus = s_quantiles.shape[1]
-
-    # Expand actions into (batch_size, num_taus, 1).
-    action_index = actions[..., None].expand(batch_size, num_taus, 1)
-
-    # Calculate quantile values at specified actions.
-    sa_quantiles = s_quantiles.gather(dim=2, index=action_index)
-
-    return sa_quantiles
-
-
-def calculate_huber_loss(td_errors, kappa=1.0):
-    return torch.where(
-        td_errors.abs() <= kappa,
-        0.5 * td_errors.pow(2),
-        kappa * (td_errors.abs() - 0.5 * kappa))
-
-
-def calculate_quantile_huber_loss(td_errors, taus, kappa=1.0):
-    assert not taus.requires_grad
-    batch_size, num_taus, num_target_taus = td_errors.shape
-
-    # Calculate huber loss element-wisely.
-    element_wise_huber_loss = calculate_huber_loss(td_errors, kappa)
-    assert element_wise_huber_loss.shape == (
-        batch_size, num_taus, num_target_taus)
-
-    # Calculate quantile huber loss element-wisely.
-    element_wise_quantile_huber_loss = torch.abs(
-        taus[..., None] - (td_errors.detach() < 0).float()
-        ) * element_wise_huber_loss / kappa
-    assert element_wise_quantile_huber_loss.shape == (
-        batch_size, num_taus, num_target_taus)
-
-    return element_wise_quantile_huber_loss.sum(dim=1).mean()
+    def load_models(self, save_dir):
+        self.online_net.load_state_dict(torch.load(
+            os.path.join(save_dir, 'online_net.pth')))
+        self.target_net.load_state_dict(torch.load(
+            os.path.join(save_dir, 'target_net.pth')))
