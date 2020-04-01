@@ -59,11 +59,6 @@ class QRDQNAgent(BaseAgent):
         self.sensitive = sensitive
         self.num_cvar = int(np.ceil(self.N * self.c))
 
-        # self.eval = eval
-        # if self.eval:
-        #     self.load_models(os.path.join(
-        #         'logs', 'FrozenLake-v0', f'QRDQN-c0', 'model', 'final'))
-
     def learn(self):
         self.learning_steps += 1
 

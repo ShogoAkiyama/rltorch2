@@ -164,6 +164,10 @@ class QRAgent(TableBaseAgent):
 
             next_state, reward, done, _ = self.env.step(action)
 
+            if (not done) and (episode_steps == self.max_episode_steps):
+                reward = -100
+                done = True
+
             self.memory.append(
                 state, action, reward, next_state, done)
 

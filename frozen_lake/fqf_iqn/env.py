@@ -84,7 +84,7 @@ class FrozenLakeEnv(discrete.DiscreteEnv):
         self.reward_max = 1
         self.reward_min = -100
         self.reward_sub = 10
-        self.step_reward = -1
+        self.step_reward = 0
 
         nA = 3
         self.num_actions = nA
