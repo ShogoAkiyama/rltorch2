@@ -44,7 +44,7 @@ def run(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--env_id', type=str, default='FrozenLake-v0')
-    parser.add_argument('--prob', type=float, default=0.8)
+    parser.add_argument('--prob', type=float, default=0.9)
     parser.add_argument('--sensitive', action='store_true')
     parser.add_argument('--c', type=float, default=0)
     parser.add_argument('--cuda', action='store_true')
