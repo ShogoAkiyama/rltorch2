@@ -13,3 +13,6 @@ c51_pytorch/data/model/target_net.pkl
 c51_pytorch/data/plots/result.pkl
 
 .data/
+
+.ipynb_checkpoints
+*.ipynb
